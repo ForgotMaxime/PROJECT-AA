@@ -3,6 +3,8 @@
 - `win32`: legacy `win32api.mouse_event` (flagged by some anti-cheats, e.g. EQU8).
 - `sendinput`: `user32.SendInput` relative move. Still user-mode (not a driver),
   but avoids the win32 mouse_event hook path. Default for `main_v8.py`.
+- `makcu`: MAKCU USB HID bridge over serial (`km.move(dx,dy)\\r`). The device
+  shows up as real hardware mouse input. Needs `aaMakcuPort`/`aaMakcuBaud`.
 """
 import ctypes
 
@@ -44,10 +46,58 @@ def move_win32(dx, dy):
     win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(dx), int(dy), 0, 0)
 
 
-def move_relative(dx, dy, backend="sendinput"):
+# Cached MAKCU serial handles keyed by (port, baud).
+_MAKCU_CONNS = {}
+
+
+def makcu_connect(port="COM3", baud=115200):
+    """Open (or reuse) the MAKCU serial handle. Raises OSError on failure."""
+    key = (str(port), int(baud))
+    ser = _MAKCU_CONNS.get(key)
+    if ser is not None and getattr(ser, "is_open", False):
+        return ser
+    try:
+        import serial
+        ser = serial.serial_for_url(str(port), baudrate=int(baud),
+                                    timeout=0, write_timeout=1)
+        ser.reset_input_buffer()
+    except Exception as e:
+        raise OSError(
+            f"MAKCU: cannot open {port} @ {baud} ({e}). "
+            "Check CH343 driver, COM port number (<10), baud toggle on the "
+            "device (115200 vs 4M), and close the AIO/test tool first."
+        ) from e
+    _MAKCU_CONNS[key] = ser
+    return ser
+
+
+def close_makcu(port=None):
+    """Close cached MAKCU handle(s)."""
+    for key in [k for k in _MAKCU_CONNS if port is None or k[0] == str(port)]:
+        try:
+            _MAKCU_CONNS.pop(key).close()
+        except Exception:
+            pass
+
+
+def move_makcu(dx, dy, port="COM3", baud=115200):
+    """Relative move via MAKCU (`km.move(dx,dy)\\r`). Zero moves are skipped."""
+    dx, dy = int(dx), int(dy)
+    if dx == 0 and dy == 0:
+        return
+    ser = makcu_connect(port, baud)
+    try:
+        ser.write(f"km.move({dx},{dy})\r".encode("ascii"))
+    except Exception as e:
+        raise OSError(f"MAKCU: write failed on {port} ({e})") from e
+
+
+def move_relative(dx, dy, backend="sendinput", port=None, baud=None):
     b = str(backend).lower()
     if b == "sendinput":
         return move_sendinput(dx, dy)
     if b in ("win32", "legacy"):
         return move_win32(dx, dy)
-    raise ValueError(f'unknown mouse backend: {backend!r} (use "sendinput" or "win32")')
+    if b == "makcu":
+        return move_makcu(dx, dy, port=port or "COM3", baud=baud or 115200)
+    raise ValueError(f'unknown mouse backend: {backend!r} (use "sendinput", "win32" or "makcu")')

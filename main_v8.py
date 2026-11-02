@@ -8,7 +8,7 @@ import win32con
 import gameSelection
 from aim import select_target, smooth_move
 from inference_v8 import V8Detector
-from mouse import move_relative
+from mouse import close_makcu, move_relative
 
 
 def _cfg(name, default):
@@ -50,6 +50,8 @@ def main():
         except Exception:
             device = "cpu"
     mouse_backend = _cfg("aaMouseBackend", "sendinput")
+    makcu_port = _cfg("aaMakcuPort", "COM3")
+    makcu_baud = int(_cfg("aaMakcuBaud", 115200))
     hold_key = int(_cfg("aaHoldKey", 0x14))
     smooth = float(_cfg("aaSmooth", 2.0))
     max_step = int(_cfg("aaMaxStep", 40))
@@ -96,7 +98,8 @@ def main():
             dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
                                  deadzone=deadzone, jitter=jitter if holding else 0)
             if holding:
-                move_relative(dx, dy, backend=mouse_backend)
+                move_relative(dx, dy, backend=mouse_backend,
+                              port=makcu_port, baud=makcu_baud)
             last_mid = (xMid, yMid)
         else:
             last_mid = None
@@ -119,6 +122,10 @@ def main():
             sTime = time.time()
 
     camera.stop()
+    try:
+        close_makcu()
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":

@@ -42,8 +42,12 @@ v8Conf = 0.4
 v8Iou = 0.45
 v8Device = 0
 
-# Mouse backend for main_v8.py: "sendinput" (default) or "win32" (legacy)
+# Mouse backend for main_v8.py: "sendinput" (default), "win32" (legacy) or "makcu"
 aaMouseBackend = "sendinput"
+
+# MAKCU serial bridge (only used when aaMouseBackend = "makcu")
+aaMakcuPort = "COM3"
+aaMakcuBaud = 115200
 
 # Aim feel (main_v8.py): smooth divisor, per-tick clamp, deadzone, jitter
 aaSmooth = 2.0

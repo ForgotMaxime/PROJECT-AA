@@ -59,6 +59,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - TensorRT: `python export_v8.py yolov8s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "yolov8s.engine"`.
 - Config (`config.py`): `v8Model`, `v8Imgsz` (320), `v8Conf` (0.4), `v8Iou` (0.45), `v8Device` (0=cuda:0, `"cpu"`=CPU), `aaMouseBackend` (`sendinput` default, `win32` legacy).
 - Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
+- MAKCU: set `config.py:aaMouseBackend = "makcu"`, `aaMakcuPort` (e.g. `"COM3"`, below COM10), `aaMakcuBaud` (115200 default, or 4000000 after toggling the device: press its button 4x in 2s). Sends `km.move(dx,dy)\r` per tick, zero moves skipped, handle closed on exit. Needs CH343 driver + AIO/test tool closed. 2PC setups run the bot on the second PC.
 - Capture (`gameSelection.py`): region clamped to monitor, `bettercam` with `dxcam` fallback.
 - Measured RTX 3060 / torch 2.14.1+cu126, 320px zero-frame: `.pt` CUDA ~16ms/iter after warmup, `.onnx` CPU fallback ~259ms/iter.
 - `onnxruntime-gpu>=1.30` needs CUDA 13 + cuDNN 9 for GPU ORT; without them it warns and falls back to CPU. Torch CUDA12 path needs no extra setup, so it stays default.
@@ -72,6 +73,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - `headshot_mode` (default True: 0.38 box height offset, else 0.2)
 - `centerOfScreen` (default True): pick closest-to-center target
 - `cpsDisplay`, `visuals`, `aaQuitKey`, `onnxChoice`
+- `aaMouseBackend` (`sendinput`/`win32`/`makcu`), `aaMakcuPort`, `aaMakcuBaud`
 - v8 aim feel (`aim.py`, `main_v8.py`): `aaSmooth` (divisor, 1=instant), `aaMaxStep` (px/tick clamp), `aaDeadzone`, `aaJitter`, `aaStickyPx` (target lock radius), `aaFovX/aaFovY` (0=off), `aaHoldKey` (default CAPS_LOCK), `aaMouseBackend`
 
 ## Perf reference (upstream)
