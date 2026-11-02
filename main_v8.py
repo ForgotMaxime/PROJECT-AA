@@ -6,6 +6,7 @@ import win32api
 import win32con
 
 import gameSelection
+from aim import select_target, smooth_move
 from inference_v8 import V8Detector
 from mouse import move_relative
 
@@ -20,19 +21,7 @@ def _cfg(name, default):
 
 def pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid):
     """dets: (N,6) x1,y1,x2,y2,conf,cls in pixels. Returns (xMid,yMid,h) or None."""
-    if dets.shape[0] == 0:
-        return None
-    mid = np.stack([(dets[:, 0] + dets[:, 2]) / 2.0, (dets[:, 1] + dets[:, 3]) / 2.0], axis=1)
-    order = np.arange(dets.shape[0])
-    if centerOfScreen:
-        dist = np.hypot(mid[:, 0] - cWidth, mid[:, 1] - cHeight)
-        order = np.argsort(dist, kind="stable")
-    elif last_mid is not None:
-        dist = np.hypot(mid[:, 0] - last_mid[0], mid[:, 1] - last_mid[1])
-        order = np.argsort(dist, kind="stable")
-    i = int(order[0])
-    h = float(dets[i, 3] - dets[i, 1])
-    return float(mid[i, 0]), float(mid[i, 1]), h
+    return select_target(dets, cWidth, cHeight, center=centerOfScreen, last=last_mid)
 
 
 def main():
@@ -54,13 +43,29 @@ def main():
     conf = float(_cfg("v8Conf", _cfg("confidence", 0.4)))
     iou = float(_cfg("v8Iou", 0.45))
     device = _cfg("v8Device", 0)
+    if isinstance(device, str) and device.lower() == "auto":
+        try:
+            import torch
+            device = 0 if torch.cuda.is_available() else "cpu"
+        except Exception:
+            device = "cpu"
     mouse_backend = _cfg("aaMouseBackend", "sendinput")
+    hold_key = int(_cfg("aaHoldKey", 0x14))
+    smooth = float(_cfg("aaSmooth", 2.0))
+    max_step = int(_cfg("aaMaxStep", 40))
+    deadzone = int(_cfg("aaDeadzone", 1))
+    jitter = float(_cfg("aaJitter", 0))
+    sticky_px = int(_cfg("aaStickyPx", 80))
+    fovX = int(_cfg("aaFovX", 0))
+    fovY = int(_cfg("aaFovY", 0))
+    fov = (fovX, fovY) if fovX and fovY else None
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou, device=device)
 
     colors = np.random.uniform(0, 255, size=(2, 3))
     last_mid = None
     count = 0
+    infer_ms = 0.0
     sTime = time.time()
 
     while win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0:
@@ -76,15 +81,21 @@ def main():
             else:
                 raise ValueError('maskSide must be "left" or "right"')
 
+        t0 = time.perf_counter()
         dets = detector.infer(frame)
-        tgt = pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid)
+        infer_ms += ((time.perf_counter() - t0) * 1000.0 - infer_ms) * 0.1
+        tgt = select_target(dets, cWidth, cHeight, center=centerOfScreen,
+                            last=last_mid, sticky_px=sticky_px, fov=fov)
 
         if tgt is not None:
             xMid, yMid, box_h = tgt
             offset = box_h * (0.38 if headshot_mode else 0.2)
-            dx = int((xMid - cWidth) * aaMovementAmp)
-            dy = int((yMid - offset - cHeight) * aaMovementAmp)
-            if win32api.GetKeyState(0x14):
+            raw_dx = (xMid - cWidth) * aaMovementAmp
+            raw_dy = (yMid - offset - cHeight) * aaMovementAmp
+            holding = bool(win32api.GetKeyState(hold_key))
+            dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
+                                 deadzone=deadzone, jitter=jitter if holding else 0)
+            if holding:
                 move_relative(dx, dy, backend=mouse_backend)
             last_mid = (xMid, yMid)
         else:
@@ -103,7 +114,7 @@ def main():
         count += 1
         if (time.time() - sTime) > 1:
             if cpsDisplay:
-                print(f"CPS: {count}")
+                print(f"CPS: {count} infer: {infer_ms:.1f}ms")
             count = 0
             sTime = time.time()
 

@@ -44,3 +44,17 @@ v8Device = 0
 
 # Mouse backend for main_v8.py: "sendinput" (default) or "win32" (legacy)
 aaMouseBackend = "sendinput"
+
+# Aim feel (main_v8.py): smooth divisor, per-tick clamp, deadzone, jitter
+aaSmooth = 2.0
+aaMaxStep = 40
+aaDeadzone = 1
+aaJitter = 0
+
+# Target lock: keep last target within this radius, FOV box half-extents (0 = off)
+aaStickyPx = 80
+aaFovX = 0
+aaFovY = 0
+
+# Key held to aim (0x14 = CAPS_LOCK)
+aaHoldKey = 0x14
