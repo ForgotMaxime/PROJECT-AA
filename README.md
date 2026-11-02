@@ -15,11 +15,12 @@ Known reports: Splitgate, EQU8 (win32 mouse movement detection).
 
 | Script | Backend | Notes |
 |---|---|---|
-| `main.py` | PyTorch (`torch.hub yolov5s`) | Easiest, any machine |
-| `main_onnx.py` | ONNX Runtime | See `config.py:onnxChoice` (1=CPU, 2=AMD/NVIDIA, 3=NVIDIA) |
-| `main_tensorrt.py` | TensorRT | NVIDIA only, hardest setup |
+| `main.py` | PyTorch (`torch.hub yolov5s`, legacy) | Easiest, any machine |
+| `main_onnx.py` | ONNX Runtime (legacy v5) | See `config.py:onnxChoice` (1=CPU, 2=AMD/NVIDIA, 3=NVIDIA) |
+| `main_tensorrt.py` | TensorRT (legacy v5) | NVIDIA only, hardest setup |
+| `main_v8.py` | Ultralytics YOLOv8 `.pt` / `.onnx` | Default path, CUDA12. See below |
 
-Entry point: `main.py:17 main()` loads `yolov5s` via `torch.hub`, captures with `gameSelection.py`, moves mouse via `win32api`.
+Entry point legacy: `main.py:17 main()` loads `yolov5s` via `torch.hub`, captures with `gameSelection.py`, moves mouse via `win32api`.
 
 ## Requirements (upstream pin)
 
@@ -42,13 +43,22 @@ Full original 12-step guide removed as outdated; expect adaptation for CUDA 12 /
 
 ```powershell
 cd "PROJECT AA"
-python main.py          # Fast
-python main_onnx.py     # Faster
-python main_tensorrt.py # Fastest (NVIDIA)
+python main_v8.py        # YOLOv8, default (torch CUDA)
+python main.py          # Fast (legacy v5)
+python main_onnx.py     # Faster (legacy v5)
+python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 ```
 
 - `CAPS_LOCK` toggles aim (starts OFF).
 - `Q` (`config.py:aaQuitKey`) quits. `visuals=True` shows OpenCV feed, `q` in feed window exits.
+
+## YOLOv8 path (`main_v8.py`, `inference_v8.py`)
+
+- Model auto-downloads `yolov8s.pt` on first run (git-ignored, 21MB).
+- ONNX: `python export_v8_onnx.py yolov8s.pt 320` -> `yolov8s.onnx` (git-ignored, 43MB), then set `config.py:v8Model = "yolov8s.onnx"`.
+- Config (`config.py`): `v8Model`, `v8Imgsz` (320), `v8Conf` (0.4), `v8Iou` (0.45), `v8Device` (0=cuda:0, `"cpu"`=CPU).
+- Measured RTX 3060 / torch 2.14.1+cu126, 320px zero-frame: `.pt` CUDA ~16ms/iter after warmup, `.onnx` CPU fallback ~259ms/iter.
+- `onnxruntime-gpu>=1.30` needs CUDA 13 + cuDNN 9 for GPU ORT; without them it warns and falls back to CPU. Torch CUDA12 path needs no extra setup, so it stays default.
 
 ## Config (`config.py`)
 

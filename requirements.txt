@@ -14,3 +14,7 @@ psutil
 dxcam
 onnxruntime_directml
 bettercam
+ultralytics
+onnx
+onnxslim
+onnxruntime-gpu

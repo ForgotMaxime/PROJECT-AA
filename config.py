@@ -34,3 +34,10 @@ centerOfScreen = True
 # 2 - AMD
 # 3 - NVIDIA
 onnxChoice = 1
+
+# YOLOv8 (main_v8.py) - .pt or .onnx, device 0 = cuda:0, "cpu" = CPU
+v8Model = "yolov8s.pt"
+v8Imgsz = 320
+v8Conf = 0.4
+v8Iou = 0.45
+v8Device = 0
