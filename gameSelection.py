@@ -8,24 +8,36 @@ from typing import Union
 # But we are writing it out for clarity for new devs
 from config import screenShotHeight, screenShotWidth
 
-def gameSelection() -> (bettercam.BetterCam, int, Union[int, None]):
+def gameSelection(title_filter=None) -> (bettercam.BetterCam, int, Union[int, None]):
     # Selecting the correct game window
     try:
         videoGameWindows = pygetwindow.getAllWindows()
-        print("=== All Windows ===")
-        for index, window in enumerate(videoGameWindows):
-            # only output the window if it has a meaningful title
-            if window.title != "":
-                print("[{}]: {}".format(index, window.title))
-        # have the user select the window they want
-        try:
-            userInput = int(input(
-                "Please enter the number corresponding to the window you'd like to select: "))
-        except ValueError:
-            print("You didn't enter a valid number. Please try again.")
-            return
-        # "save" that window as the chosen window for the rest of the script
-        videoGameWindow = videoGameWindows[userInput]
+        if title_filter:
+            needle = str(title_filter).lower()
+            matches = [w for w in videoGameWindows if needle in (w.title or "").lower()]
+            if not matches:
+                print(f'No window matching "{title_filter}" found:')
+                for w in videoGameWindows:
+                    if (w.title or "").strip():
+                        print(f"  - {w.title}")
+                return None
+            videoGameWindow = matches[0]
+            print(f'Selected window: "{videoGameWindow.title}" (filter "{title_filter}")')
+        else:
+            print("=== All Windows ===")
+            for index, window in enumerate(videoGameWindows):
+                # only output the window if it has a meaningful title
+                if window.title != "":
+                    print("[{}]: {}".format(index, window.title))
+            # have the user select the window they want
+            try:
+                userInput = int(input(
+                    "Please enter the number corresponding to the window you'd like to select: "))
+            except ValueError:
+                print("You didn't enter a valid number. Please try again.")
+                return
+            # "save" that window as the chosen window for the rest of the script
+            videoGameWindow = videoGameWindows[userInput]
     except Exception as e:
         print("Failed to select game window: {}".format(e))
         return None
@@ -62,12 +74,14 @@ def gameSelection() -> (bettercam.BetterCam, int, Union[int, None]):
         (videoGameWindow.height - screenShotHeight) // 2
     right, bottom = left + screenShotWidth, top + screenShotHeight
 
-    # Clamp region to the primary monitor so negative/off-screen coords fail fast
+    # Clamp region to the virtual screen (multi-monitor aware) so
+    # negative/off-screen coords fail fast instead of breaking capture.
     try:
         import win32api as _w32
-        sw, sh = _w32.GetSystemMetrics(0), _w32.GetSystemMetrics(1)
-        left, top = max(0, left), max(0, top)
-        right, bottom = min(sw, right), min(sh, bottom)
+        vx, vy = _w32.GetSystemMetrics(76), _w32.GetSystemMetrics(77)
+        vw, vh = _w32.GetSystemMetrics(78), _w32.GetSystemMetrics(79)
+        left, top = max(vx, left), max(vy, top)
+        right, bottom = min(vx + vw, right), min(vy + vh, bottom)
         if right - left < 64 or bottom - top < 64:
             print(f"Capture region too small after clamping: {(left, top, right, bottom)}")
             return None

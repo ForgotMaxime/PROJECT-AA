@@ -25,7 +25,16 @@ def pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid):
 
 
 def main():
-    camera, cWidth, cHeight = gameSelection.gameSelection()
+    import sys
+    title_filter = None
+    args = sys.argv[1:]
+    if "--window" in args:
+        title_filter = args[args.index("--window") + 1]
+    selection = gameSelection.gameSelection(title_filter)
+    if selection is None:
+        print("Game selection failed, exiting.")
+        return
+    camera, cWidth, cHeight = selection
 
     useMask = _cfg("useMask", False)
     maskSide = str(_cfg("maskSide", "left")).lower()
