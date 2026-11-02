@@ -65,7 +65,7 @@ aaHoldKey = 0x14
 
 # Pixel rects (x, y, w, h) blacked out before inference: own 3rd-person model, HUD.
 # Tune with tools/diag_capture.py frames. [] = off.
-aaIgnoreRects = [(200, 110, 60, 120)]
+aaIgnoreRects = [(60, 110, 60, 120)]
 
 # Ignore detections taller than this (own close-up body/gun). 0 = off.
 aaMaxBoxH = 160
@@ -73,5 +73,6 @@ aaMaxBoxH = 160
 # Aim shift (ex-aaRightShift, Fortnite 3rd person): shifts the capture region
 # AND the aim point by the same amount, so aim math stays exact while the
 # selection center moves away from your own shoulder model. 0 = off.
-aaShiftX = 0
+# Positive X moves selection right (own char on the left).
+aaShiftX = 60
 aaShiftY = 0
