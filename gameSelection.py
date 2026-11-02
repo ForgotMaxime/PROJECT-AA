@@ -8,7 +8,7 @@ from typing import Union
 # But we are writing it out for clarity for new devs
 from config import screenShotHeight, screenShotWidth
 
-def gameSelection(title_filter=None) -> (bettercam.BetterCam, int, Union[int, None]):
+def gameSelection(title_filter=None, shift_x=0, shift_y=0) -> (bettercam.BetterCam, int, Union[int, None]):
     # Selecting the correct game window
     try:
         videoGameWindows = pygetwindow.getAllWindows()
@@ -69,9 +69,9 @@ def gameSelection(title_filter=None) -> (bettercam.BetterCam, int, Union[int, No
     print("Successfully activated the game window...")
 
     # Starting screenshoting engine
-    left = ((videoGameWindow.left + videoGameWindow.right) // 2) - (screenShotWidth // 2)
+    left = ((videoGameWindow.left + videoGameWindow.right) // 2) - (screenShotWidth // 2) + int(shift_x)
     top = videoGameWindow.top + \
-        (videoGameWindow.height - screenShotHeight) // 2
+        (videoGameWindow.height - screenShotHeight) // 2 + int(shift_y)
     right, bottom = left + screenShotWidth, top + screenShotHeight
 
     # Clamp region to the virtual screen (multi-monitor aware) so

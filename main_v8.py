@@ -31,7 +31,9 @@ def main():
     args = sys.argv[1:]
     if "--window" in args:
         title_filter = args[args.index("--window") + 1]
-    selection = gameSelection.gameSelection(title_filter)
+    shift_x = int(_cfg("aaShiftX", 0))
+    shift_y = int(_cfg("aaShiftY", 0))
+    selection = gameSelection.gameSelection(title_filter, shift_x, shift_y)
     if selection is None:
         print("Game selection failed, exiting.")
         return
@@ -107,8 +109,10 @@ def main():
         if tgt is not None:
             xMid, yMid, box_h = tgt
             offset = box_h * (0.38 if headshot_mode else 0.2)
-            raw_dx = (xMid - cWidth) * aaMovementAmp
-            raw_dy = (yMid - offset - cHeight) * aaMovementAmp
+            # aaShiftX/Y: same shift as the capture region, so aim stays exact
+            # while the selection center moves (ex-aaRightShift).
+            raw_dx = (xMid + shift_x - cWidth) * aaMovementAmp
+            raw_dy = (yMid + shift_y - offset - cHeight) * aaMovementAmp
             holding = bool(win32api.GetKeyState(hold_key))
             dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
                                  deadzone=deadzone, jitter=jitter if holding else 0)

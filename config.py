@@ -69,3 +69,9 @@ aaIgnoreRects = [(200, 110, 60, 120)]
 
 # Ignore detections taller than this (own close-up body/gun). 0 = off.
 aaMaxBoxH = 160
+
+# Aim shift (ex-aaRightShift, Fortnite 3rd person): shifts the capture region
+# AND the aim point by the same amount, so aim math stays exact while the
+# selection center moves away from your own shoulder model. 0 = off.
+aaShiftX = 0
+aaShiftY = 0
