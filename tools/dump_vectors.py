@@ -28,14 +28,16 @@ def select_cases():
     cases = []
 
     def add(name, dets, cw=160.0, ch=160.0, center=True, last=None,
-            sticky=80.0, fov=None):
+            sticky=80.0, fov=None, max_box_h=0.0):
         arr = np.array(dets, dtype=np.float64).reshape(-1, 6)
         got = select_target(arr, cw, ch, center=center,
                             last=tuple(last) if last else None,
-                            sticky_px=sticky, fov=tuple(fov) if fov else None)
+                            sticky_px=sticky, fov=tuple(fov) if fov else None,
+                            max_box_h=max_box_h)
         cases.append({"kind": "select", "name": name,
                       "input": {"dets": dets, "cw": cw, "ch": ch, "center": center,
-                                "last": last, "sticky_px": sticky, "fov": fov},
+                                "last": last, "sticky_px": sticky, "fov": fov,
+                                "max_box_h": max_box_h},
                       "expected": list(got) if got else None})
 
     add("center", FRAME_A)
@@ -50,6 +52,9 @@ def select_cases():
     add("empty", [])
     add("single", [FRAME_A[0]])
     add("tie-first-wins", TIE)
+    add("maxbox-kills-big", FRAME_A, max_box_h=100.0)  # h=120,40 -> only small kept
+    add("maxbox-kills-all", FRAME_A, max_box_h=30.0)
+    add("maxbox-keeps-all", FRAME_A, max_box_h=200.0)
     return cases
 
 
@@ -85,12 +90,13 @@ def chain_cases():
     cases = []
 
     def add(name, dets, cw=160.0, ch=160.0, center=True, last=None,
-            sticky=80.0, fov=None, headshot=True, amp=0.4,
+            sticky=80.0, fov=None, max_box_h=0.0, headshot=True, amp=0.4,
             smooth=2.0, max_step=40, deadzone=1.0):
         arr = np.array(dets, dtype=np.float64).reshape(-1, 6)
         tgt = select_target(arr, cw, ch, center=center,
                             last=tuple(last) if last else None,
-                            sticky_px=sticky, fov=tuple(fov) if fov else None)
+                            sticky_px=sticky, fov=tuple(fov) if fov else None,
+                            max_box_h=max_box_h)
         if tgt is None:
             mv, new_last = None, None
         else:
@@ -103,6 +109,7 @@ def chain_cases():
         cases.append({"kind": "chain", "name": name,
                       "input": {"dets": dets, "cw": cw, "ch": ch, "center": center,
                                 "last": last, "sticky_px": sticky, "fov": fov,
+                                "max_box_h": max_box_h,
                                 "headshot_mode": headshot, "amp": amp,
                                 "smooth": smooth, "max_step": max_step,
                                 "deadzone": deadzone},

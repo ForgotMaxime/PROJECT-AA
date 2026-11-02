@@ -26,7 +26,8 @@
    "center": true,
    "last": null,
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
@@ -64,7 +65,8 @@
     30.0
    ],
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    20.0,
@@ -102,7 +104,8 @@
     500.0
    ],
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
@@ -137,7 +140,8 @@
    "center": false,
    "last": null,
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
@@ -175,7 +179,8 @@
     0.0
    ],
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    20.0,
@@ -213,7 +218,8 @@
     30.0
    ],
    "sticky_px": 0.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
@@ -251,7 +257,8 @@
    "fov": [
     5.0,
     5.0
-   ]
+   ],
+   "max_box_h": 0.0
   },
   "expected": null
  },
@@ -285,7 +292,8 @@
    "fov": [
     15.0,
     15.0
-   ]
+   ],
+   "max_box_h": 0.0
   },
   "expected": [
    20.0,
@@ -323,7 +331,8 @@
    "fov": [
     0.0,
     50.0
-   ]
+   ],
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
@@ -341,7 +350,8 @@
    "center": true,
    "last": null,
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": null
  },
@@ -364,7 +374,8 @@
    "center": true,
    "last": null,
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
@@ -399,12 +410,117 @@
    "center": true,
    "last": null,
    "sticky_px": 80.0,
-   "fov": null
+   "fov": null,
+   "max_box_h": 0.0
   },
   "expected": [
    140.0,
    160.0,
    40.0
+  ]
+ },
+ {
+  "kind": "select",
+  "name": "maxbox-kills-big",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 100.0
+  },
+  "expected": [
+   20.0,
+   30.0,
+   40.0
+  ]
+ },
+ {
+  "kind": "select",
+  "name": "maxbox-kills-all",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 30.0
+  },
+  "expected": null
+ },
+ {
+  "kind": "select",
+  "name": "maxbox-keeps-all",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 200.0
+  },
+  "expected": [
+   140.0,
+   160.0,
+   120.0
   ]
  },
  {
@@ -615,6 +731,7 @@
    "last": null,
    "sticky_px": 80.0,
    "fov": null,
+   "max_box_h": 0.0,
    "headshot_mode": true,
    "amp": 0.4,
    "smooth": 2.0,
@@ -660,6 +777,7 @@
    "last": null,
    "sticky_px": 80.0,
    "fov": null,
+   "max_box_h": 0.0,
    "headshot_mode": false,
    "amp": 0.4,
    "smooth": 2.0,
@@ -708,6 +826,7 @@
    ],
    "sticky_px": 80.0,
    "fov": null,
+   "max_box_h": 0.0,
    "headshot_mode": true,
    "amp": 0.4,
    "smooth": 2.0,
@@ -736,6 +855,7 @@
    "last": null,
    "sticky_px": 80.0,
    "fov": null,
+   "max_box_h": 0.0,
    "headshot_mode": true,
    "amp": 0.4,
    "smooth": 2.0,
@@ -778,6 +898,7 @@
     5.0,
     5.0
    ],
+   "max_box_h": 0.0,
    "headshot_mode": true,
    "amp": 0.4,
    "smooth": 2.0,

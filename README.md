@@ -74,6 +74,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - `centerOfScreen` (default True): pick closest-to-center target
 - `cpsDisplay`, `visuals`, `aaQuitKey`, `onnxChoice`
 - `aaMouseBackend` (`sendinput`/`win32`/`makcu`), `aaMakcuPort`, `aaMakcuBaud`
+- Own-character rejection (3rd person): `aaIgnoreRects` (pixel zones blacked out, tune via `tools/diag_capture.py`) + `aaMaxBoxH` (ignore boxes taller than this, 0=off)
 - v8 aim feel (`aim.py`, `main_v8.py`): `aaSmooth` (divisor, 1=instant), `aaMaxStep` (px/tick clamp), `aaDeadzone`, `aaJitter`, `aaStickyPx` (target lock radius), `aaFovX/aaFovY` (0=off), `aaHoldKey` (default CAPS_LOCK), `aaMouseBackend`
 
 ## Perf reference (upstream)

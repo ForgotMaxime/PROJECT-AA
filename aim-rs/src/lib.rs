@@ -54,6 +54,7 @@ pub fn select_target(
     last: Option<(f64, f64)>,
     sticky_px: f64,
     fov: Option<(f64, f64)>,
+    max_box_h: f64,
 ) -> Option<(f64, f64, f64)> {
     if dets.is_empty() {
         return None;
@@ -67,6 +68,12 @@ pub fn select_target(
             if idx.is_empty() {
                 return None;
             }
+        }
+    }
+    if max_box_h != 0.0 {
+        idx.retain(|&i| dets[i].height() <= max_box_h);
+        if idx.is_empty() {
+            return None;
         }
     }
     let dist_to = |p: (f64, f64), i: usize| {
@@ -175,13 +182,14 @@ pub fn aim_step(
     last: Option<(f64, f64)>,
     sticky_px: f64,
     fov: Option<(f64, f64)>,
+    max_box_h: f64,
     headshot_mode: bool,
     amp: f64,
     smooth: f64,
     max_step: i64,
     deadzone: f64,
 ) -> (Option<(i64, i64)>, Option<(f64, f64)>) {
-    match select_target(dets, cw, ch, center, last, sticky_px, fov) {
+    match select_target(dets, cw, ch, center, last, sticky_px, fov, max_box_h) {
         None => (None, None),
         Some((xm, ym, h)) => {
             let offset = h * if headshot_mode { 0.38 } else { 0.2 };

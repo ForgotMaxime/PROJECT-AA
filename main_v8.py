@@ -6,7 +6,7 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import select_target, smooth_move
+from aim import apply_ignore_rects, select_target, smooth_move
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -19,9 +19,10 @@ def _cfg(name, default):
         return default
 
 
-def pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid):
+def pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid, max_box_h=0):
     """dets: (N,6) x1,y1,x2,y2,conf,cls in pixels. Returns (xMid,yMid,h) or None."""
-    return select_target(dets, cWidth, cHeight, center=centerOfScreen, last=last_mid)
+    return select_target(dets, cWidth, cHeight, center=centerOfScreen,
+                         last=last_mid, max_box_h=max_box_h)
 
 
 def main():
@@ -70,6 +71,8 @@ def main():
     fovX = int(_cfg("aaFovX", 0))
     fovY = int(_cfg("aaFovY", 0))
     fov = (fovX, fovY) if fovX and fovY else None
+    ignore_rects = _cfg("aaIgnoreRects", [])
+    max_box_h = float(_cfg("aaMaxBoxH", 0))
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou, device=device)
 
@@ -91,12 +94,15 @@ def main():
                 frame[-maskHeight:, :maskWidth] = 0
             else:
                 raise ValueError('maskSide must be "left" or "right"')
+        if ignore_rects:
+            apply_ignore_rects(frame, ignore_rects)
 
         t0 = time.perf_counter()
         dets = detector.infer(frame)
         infer_ms += ((time.perf_counter() - t0) * 1000.0 - infer_ms) * 0.1
         tgt = select_target(dets, cWidth, cHeight, center=centerOfScreen,
-                            last=last_mid, sticky_px=sticky_px, fov=fov)
+                            last=last_mid, sticky_px=sticky_px, fov=fov,
+                            max_box_h=max_box_h)
 
         if tgt is not None:
             xMid, yMid, box_h = tgt

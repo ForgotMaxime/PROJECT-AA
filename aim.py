@@ -8,14 +8,29 @@ import random
 import numpy as np
 
 
+def apply_ignore_rects(frame, rects):
+    """Black out (x, y, w, h) pixel rects in-place (own 3rd-person model, HUD).
+
+    Pure frame preprocessing, no aim math: not covered by the aim-rs port.
+    """
+    h, w = frame.shape[:2]
+    for (x, y, rw, rh) in rects or []:
+        x0, y0 = max(0, int(x)), max(0, int(y))
+        x1, y1 = min(w, x0 + int(rw)), min(h, y0 + int(rh))
+        if x1 > x0 and y1 > y0:
+            frame[y0:y1, x0:x1] = 0
+    return frame
+
+
 def select_target(dets, cWidth, cHeight, center=True, last=None, sticky_px=80,
-                  fov=None):
+                  fov=None, max_box_h=0):
     """Pick one target from dets (N,6) x1,y1,x2,y2,conf,cls (pixels).
 
     - fov: None or (fx, fy) half-extents around screen center; targets whose
       midpoint falls outside are ignored (0/None = no filter).
     - sticky: if last is not None, keep tracking the target nearest to last
       while it stays within sticky_px; otherwise fall back to nearest-center.
+    - max_box_h: ignore boxes taller than this (own close-up body/gun, 0 = off).
     Returns (xMid, yMid, h) or None.
     """
     if dets.shape[0] == 0:
@@ -26,6 +41,13 @@ def select_target(dets, cWidth, cHeight, center=True, last=None, sticky_px=80,
     if fov is not None and fov[0] and fov[1]:
         fx, fy = float(fov[0]), float(fov[1])
         keep = (np.abs(mid[:, 0] - cWidth) <= fx) & (np.abs(mid[:, 1] - cHeight) <= fy)
+        if not bool(np.any(keep)):
+            return None
+        mid = mid[keep]
+        idx = idx[keep]
+    if max_box_h:
+        heights = dets[idx, 3] - dets[idx, 1]
+        keep = heights <= float(max_box_h)
         if not bool(np.any(keep)):
             return None
         mid = mid[keep]

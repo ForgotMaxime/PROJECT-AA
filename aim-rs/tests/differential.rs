@@ -27,6 +27,7 @@ struct SelectIn {
     last: Option<[f64; 2]>,
     sticky_px: f64,
     fov: Option<[f64; 2]>,
+    max_box_h: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -47,6 +48,7 @@ struct ChainIn {
     last: Option<[f64; 2]>,
     sticky_px: f64,
     fov: Option<[f64; 2]>,
+    max_box_h: f64,
     headshot_mode: bool,
     amp: f64,
     smooth: f64,
@@ -92,6 +94,7 @@ fn differential_vectors() {
                     inp.last.map(|l| (l[0], l[1])),
                     inp.sticky_px,
                     inp.fov.map(|f| (f[0], f[1])),
+                    inp.max_box_h,
                 );
                 assert_eq!(
                     got.map(|(x, y, h)| [x, y, h]),
@@ -118,6 +121,7 @@ fn differential_vectors() {
                     inp.last.map(|l| (l[0], l[1])),
                     inp.sticky_px,
                     inp.fov.map(|f| (f[0], f[1])),
+                    inp.max_box_h,
                     inp.headshot_mode,
                     inp.amp,
                     inp.smooth,

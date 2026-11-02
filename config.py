@@ -24,7 +24,7 @@ headshot_mode = True
 cpsDisplay = True
 
 # Set to True if you want to get the visuals
-visuals = False
+visuals = True
 
 # Smarter selection of people
 centerOfScreen = True
@@ -62,3 +62,10 @@ aaFovY = 0
 
 # Key held to aim (0x14 = CAPS_LOCK)
 aaHoldKey = 0x14
+
+# Pixel rects (x, y, w, h) blacked out before inference: own 3rd-person model, HUD.
+# Tune with tools/diag_capture.py frames. [] = off.
+aaIgnoreRects = [(200, 110, 60, 120)]
+
+# Ignore detections taller than this (own close-up body/gun). 0 = off.
+aaMaxBoxH = 160
