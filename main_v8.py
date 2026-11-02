@@ -7,6 +7,7 @@ import win32con
 
 import gameSelection
 from inference_v8 import V8Detector
+from mouse import move_relative
 
 
 def _cfg(name, default):
@@ -53,6 +54,7 @@ def main():
     conf = float(_cfg("v8Conf", _cfg("confidence", 0.4)))
     iou = float(_cfg("v8Iou", 0.45))
     device = _cfg("v8Device", 0)
+    mouse_backend = _cfg("aaMouseBackend", "sendinput")
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou, device=device)
 
@@ -83,7 +85,7 @@ def main():
             dx = int((xMid - cWidth) * aaMovementAmp)
             dy = int((yMid - offset - cHeight) * aaMovementAmp)
             if win32api.GetKeyState(0x14):
-                win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, dx, dy, 0, 0)
+                move_relative(dx, dy, backend=mouse_backend)
             last_mid = (xMid, yMid)
         else:
             last_mid = None

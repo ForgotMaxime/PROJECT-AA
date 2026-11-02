@@ -55,8 +55,11 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 ## YOLOv8 path (`main_v8.py`, `inference_v8.py`)
 
 - Model auto-downloads `yolov8s.pt` on first run (git-ignored, 21MB).
-- ONNX: `python export_v8_onnx.py yolov8s.pt 320` -> `yolov8s.onnx` (git-ignored, 43MB), then set `config.py:v8Model = "yolov8s.onnx"`.
-- Config (`config.py`): `v8Model`, `v8Imgsz` (320), `v8Conf` (0.4), `v8Iou` (0.45), `v8Device` (0=cuda:0, `"cpu"`=CPU).
+- ONNX: `python export_v8.py yolov8s.pt 320 onnx` -> `yolov8s.onnx` (git-ignored, 43MB), then set `config.py:v8Model = "yolov8s.onnx"`.
+- TensorRT: `python export_v8.py yolov8s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "yolov8s.engine"`.
+- Config (`config.py`): `v8Model`, `v8Imgsz` (320), `v8Conf` (0.4), `v8Iou` (0.45), `v8Device` (0=cuda:0, `"cpu"`=CPU), `aaMouseBackend` (`sendinput` default, `win32` legacy).
+- Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
+- Capture (`gameSelection.py`): region clamped to monitor, `bettercam` with `dxcam` fallback.
 - Measured RTX 3060 / torch 2.14.1+cu126, 320px zero-frame: `.pt` CUDA ~16ms/iter after warmup, `.onnx` CPU fallback ~259ms/iter.
 - `onnxruntime-gpu>=1.30` needs CUDA 13 + cuDNN 9 for GPU ORT; without them it warns and falls back to CPU. Torch CUDA12 path needs no extra setup, so it stays default.
 

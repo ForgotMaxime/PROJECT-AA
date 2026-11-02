@@ -62,6 +62,18 @@ def gameSelection() -> (bettercam.BetterCam, int, Union[int, None]):
         (videoGameWindow.height - screenShotHeight) // 2
     right, bottom = left + screenShotWidth, top + screenShotHeight
 
+    # Clamp region to the primary monitor so negative/off-screen coords fail fast
+    try:
+        import win32api as _w32
+        sw, sh = _w32.GetSystemMetrics(0), _w32.GetSystemMetrics(1)
+        left, top = max(0, left), max(0, top)
+        right, bottom = min(sw, right), min(sh, bottom)
+        if right - left < 64 or bottom - top < 64:
+            print(f"Capture region too small after clamping: {(left, top, right, bottom)}")
+            return None
+    except Exception:
+        pass
+
     region: tuple = (left, top, right, bottom)
 
     # Calculating the center Autoaim box
@@ -72,7 +84,15 @@ def gameSelection() -> (bettercam.BetterCam, int, Union[int, None]):
 
     camera = bettercam.create(region=region, output_color="BGRA", max_buffer_len=512)
     if camera is None:
-        print("Your Camera Failed! Ask @Wonder for help in our Discord in the #ai-aimbot channel ONLY: https://discord.gg/rootkitorg")
+        print("bettercam failed, trying dxcam fallback...")
+        try:
+            import dxcam
+            camera = dxcam.create(region=region, output_color="BGRA", max_buffer_len=512)
+        except Exception as e:
+            print(f"dxcam fallback failed: {e}")
+            camera = None
+    if camera is None:
+        print("Your Camera Failed! Check the region and GPU screen-capture support.")
         return
     camera.start(target_fps=120, video_mode=True)
 

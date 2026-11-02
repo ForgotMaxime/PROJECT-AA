@@ -15,7 +15,7 @@ aaMovementAmp = .4
 confidence = 0.4
 
 # What key to press to quit and shutdown the autoaim
-aaQuitKey = "Q"
+aaQuitKey = "P"
 
 # If you want to main slightly upwards towards the head
 headshot_mode = True
@@ -35,9 +35,12 @@ centerOfScreen = True
 # 3 - NVIDIA
 onnxChoice = 1
 
-# YOLOv8 (main_v8.py) - .pt or .onnx, device 0 = cuda:0, "cpu" = CPU
+# YOLOv8 (main_v8.py) - .pt, .onnx or .engine, device 0 = cuda:0, "cpu" = CPU
 v8Model = "yolov8s.pt"
 v8Imgsz = 320
 v8Conf = 0.4
 v8Iou = 0.45
 v8Device = 0
+
+# Mouse backend for main_v8.py: "sendinput" (default) or "win32" (legacy)
+aaMouseBackend = "sendinput"

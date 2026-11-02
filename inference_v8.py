@@ -2,7 +2,8 @@
 
 Uses `ultralytics.YOLO` for both backends so NMS/preprocessing stay in one
 place. `.onnx` runs through ONNX Runtime (CUDAExecutionProvider when
-device=0, else CPU).
+device=0, else CPU). `.engine` (TensorRT) also loads via `YOLO()` when
+TensorRT is installed; building needs `python export_v8.py <model> 320 engine`.
 
 Note: onnxruntime-gpu >=1.30 needs CUDA 13 + cuDNN 9 for GPU ORT. Without
 them it falls back to CPU (~250ms/320px). Default `v8Model=yolov8s.pt`
