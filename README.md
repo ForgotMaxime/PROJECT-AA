@@ -83,6 +83,13 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - `customModels/*/README.md`: community weights (Fortnite, Rust, Roblox/Phantom Forces, yolov5n160, fal3). Check per-model setup note before use.
 - `customScripts/*/README.md`: variants (AimAssist AMD perf, Tector101 DXCam follow, Villageslayer keybinds, yolov8_live_overlay). Each has its own requirements; not all maintained.
 
+## Rust port + differential testing (`aim-rs/`)
+
+- `aim-rs/src/lib.rs`: port of `aim.py` (`select_target`, `smooth_move`, full-tick `aim_step`). Banker's rounding replicated to match CPython `round()`; jitter uses an explicit seeded xorshift stream (different from CPython's MT by design — deterministic core tested differentially, jitter via contract test).
+- Harness 1 (unit): `tools/dump_vectors.py` generates 29 vectors from `aim.py` into `aim-rs/tests/vectors/vectors.json`; `cargo test` replays them with exact comparison.
+- Harness 2 (integration): `chain/*` vectors cover the full `dets -> dx/dy` tick (select + headshot offset + amp + smooth), mirroring `main_v8.py`.
+- Regen + test: `python tools/dump_vectors.py` then `cargo test --manifest-path aim-rs/Cargo.toml`.
+
 ## Docs removed in this fork
 
 - `Conda/00`, `01`, `03`: generic Conda/git tutorials (not project-specific).

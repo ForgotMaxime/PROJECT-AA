@@ -21,3 +21,5 @@ elite
 !Robloxmodel.pt
 !rust.pt
 !rust.engine
+aim-rs/target/
+!aim-rs/tests/
