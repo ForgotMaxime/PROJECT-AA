@@ -24,3 +24,4 @@ elite
 aim-rs/target/
 !aim-rs/tests/
 diag/
+data/

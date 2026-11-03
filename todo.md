@@ -31,7 +31,7 @@
 - [x] Conversion FOV/sensibilité (`aaGameFovX/Y`, `aaSens/Yaw/Pitch`, `aaScreenW/H` auto-fenêtre — `aim.fov_to_counts`, miroir Rust, 9 vecteurs ; 0 = legacy amp, défaut inchangé)
 - [x] Courbe de vitesse (`aim.speed_curve` continue + snap `aaSnapPx/Boost` + engagement en px vrais + `aaFovSpeed` 0.25, miroir Rust) — suivi exact du diamant simulé 100px→centré monotone
 - [ ] WindMouse + recoil (reste de l'item vitesse SunOne)
-- [ ] Modèle 2 classes (player + head) puis fine-tuné Fortnite — plafond actuel = COCO 1 classe
+- [ ] Modèle fine-tuné Fortnite (`tools/autolabel.py` + `tools/train_fortnite.py` prêts, testés sur seq_ab ; pipeline : record `data/fn_raw` live → autolabel @0.10 → triage previews → train 320px) — plafond actuel = COCO 1 classe ; 2 classes (player+head) après
 - [ ] Overlay avec compensation de latence (boîtes décalées de l'âge frame)
 - [ ] YOLOv12/pose (tester `yolo12s`, `yolo11s-pose` pour visée tête directe)
 - [ ] Masque de profondeur (Depth-Anything) si les heuristiques anti-own-char saturent
