@@ -30,7 +30,11 @@ def pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid, max_box_h=0):
 
 
 def _capture_loop(camera, frame_q, stop_ev):
-    """Pump latest frames; drop stale so inference always sees fresh pixels."""
+    """Pump latest frames; drop stale so inference always sees fresh pixels.
+
+    Frames travel with their capture timestamp so the aim stage can lead by
+    the true pipeline latency (predictive routing), not a magic constant.
+    """
     while not stop_ev.is_set():
         try:
             frame = camera.get_latest_frame()
@@ -43,7 +47,7 @@ def _capture_loop(camera, frame_q, stop_ev):
         except queue.Empty:
             pass
         try:
-            frame_q.put_nowait(frame)
+            frame_q.put_nowait((frame, time.perf_counter()))
         except queue.Full:
             pass
 
@@ -229,6 +233,7 @@ def main(source=None, max_ticks=0):
     kf_warm = 0
     kf_gates = 0
     last_t = None
+    last_cap_t = None
     prev_holding = False
     mono_armed = True
     count = 0
@@ -257,10 +262,15 @@ def main(source=None, max_ticks=0):
            and (max_ticks <= 0 or ticks < max_ticks)
            and not (gui_on and gui_live.should_quit())):
         try:
-            frame = frame_q.get(timeout=0.5)
+            item = frame_q.get(timeout=0.5)
         except queue.Empty:
             continue
         ticks += 1
+        # (frame, capture-timestamp) tuples; bare frames for backward compat.
+        if isinstance(item, tuple) and len(item) == 2:
+            frame, t_cap = item
+        else:
+            frame, t_cap = item, None
         frame = np.array(frame)
         if frame.shape[2] == 4:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
@@ -276,7 +286,14 @@ def main(source=None, max_ticks=0):
             apply_ignore_rects(frame, ignore_rects)
 
         now = time.perf_counter()
-        dt = min(0.2, max(0.005, now - last_t)) if last_t is not None else 1 / 30.0
+        if t_cap is not None and last_cap_t is not None:
+            # True inter-frame time from capture stamps: velocity is sampled
+            # on the frame clock, not the loop clock.
+            dt = min(0.2, max(0.005, t_cap - last_cap_t))
+        else:
+            dt = min(0.2, max(0.005, now - last_t)) if last_t is not None else 1 / 30.0
+        if t_cap is not None:
+            last_cap_t = t_cap
         last_t = now
         coasted = False
 
@@ -335,7 +352,15 @@ def main(source=None, max_ticks=0):
         useMask = bool(_cfg("useMask", False))
         detector.conf = conf
         detector.iou = iou
-        lead_vmax = (lead_max / lead_t) if lead_t > 0 else 0.0
+
+        # Predictive routing: lead by the measured pipeline latency (capture
+        # -> tick) plus the tunable base, so the shot lands where the target
+        # will be when the move executes, not where it was at capture time.
+        # The ~8ms inference + mouse delivery sit inside the aaLeadT base.
+        t_pre = time.perf_counter()
+        pipe_lat = max(0.0, t_pre - t_cap) if t_cap is not None else dt
+        lead_total = max(0.0, lead_t) + pipe_lat
+        lead_vmax = (lead_max / lead_total) if lead_total > 0 else 0.0
 
         t0 = time.perf_counter()
         tgt = None
@@ -381,7 +406,7 @@ def main(source=None, max_ticks=0):
                     lock_misses += 1
                     kf.predict(dt)
                     coasted = True
-                    ax, ay = kf.ahead(lead_t, lead_vmax)
+                    ax, ay = kf.ahead(lead_total, lead_vmax)
                     tgt = (ax, ay, ema_h if ema_h is not None else t4[2])
                 else:
                     # Committed switch (hold expired) or first lock: one active
@@ -465,7 +490,7 @@ def main(source=None, max_ticks=0):
                         else:
                             kf_warm += 1
                 if kf is not None and kf_warm >= max(0, kalman_warmup):
-                    ax, ay = kf.ahead(lead_t, lead_vmax)
+                    ax, ay = kf.ahead(lead_total, lead_vmax)
                 else:
                     # Cold or dropped filter: velocity untrusted, aim raw mid.
                     ax, ay = xMid, yMid
@@ -549,8 +574,10 @@ def main(source=None, max_ticks=0):
                 with stats_lock:
                     m = stats["mouse"]
                     stats["mouse"] = 0
-                print(f"CPS inf: {count} mouse: {m} infer: {infer_ms:.1f}ms")
+                print(f"CPS inf: {count} mouse: {m} infer: {infer_ms:.1f}ms "
+                      f"pipe: {pipe_lat*1000:.0f}ms lead: {lead_total*1000:.0f}ms")
                 stats_txt = (f"inf {count} | mouse {m} | {infer_ms:.1f}ms | "
+                             f"pipe {pipe_lat*1000:.0f}ms lead {lead_total*1000:.0f}ms | "
                              f"lock {locked_id} | dets {len(dets)}")
             count = 0
             sTime = time.time()

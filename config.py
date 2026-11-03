@@ -110,8 +110,10 @@ aaDzEnter = 2.5
 aaDzExit = 1.0
 
 # Target prediction (Kalman CV + lead). Off = aim at raw midpoint.
+# Predictive routing: per-tick lead = aaLeadT base + measured capture->tick
+# pipeline latency, so the move lands where the target will be at execution.
 aaPredict = True
-aaLeadT = 0.03
+aaLeadT = 0.01
 aaLeadMax = 30.0
 aaGatePx = 60.0
 aaKalmanQX = 4e6
