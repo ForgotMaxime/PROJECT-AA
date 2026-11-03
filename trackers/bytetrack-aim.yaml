@@ -1,0 +1,10 @@
+# Tuned ByteTrack for aimbot use (see ultralytics cfg/trackers/bytetrack.yaml).
+# Lower buffer forgets eliminated targets fast; slightly looser match
+# tolerates 30Hz + camera rotation.
+tracker_type: bytetrack
+track_high_thresh: 0.25
+track_low_thresh: 0.1
+new_track_thresh: 0.25
+track_buffer: 10
+match_thresh: 0.7
+fuse_score: True

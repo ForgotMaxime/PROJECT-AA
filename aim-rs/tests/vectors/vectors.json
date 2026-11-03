@@ -830,6 +830,303 @@
   "expected": 60.0
  },
  {
+  "kind": "locked",
+  "name": "keep-lock",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 3,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3
+  },
+  "expected": {
+   "tgt": {
+    "x": 20.0,
+    "y": 30.0,
+    "h": 40.0,
+    "tid": 3
+   },
+   "lock": 3
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "keep-lock-lowconf",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 7,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.95
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": 7
+   },
+   "lock": 7
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "relock-other",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 99,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": 7
+   },
+   "lock": 7
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "no-lock-picks-center",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": null,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": 7
+   },
+   "lock": 7
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "no-id-fallback",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    null,
+    null
+   ],
+   "locked": 7,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": null
+   },
+   "lock": null
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "neg-id-means-none",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    -1,
+    -1
+   ],
+   "locked": -1,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": null
+   },
+   "lock": null
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "empty",
+  "input": {
+   "dets": [],
+   "ids": [],
+   "locked": 5,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": null,
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3
+  },
+  "expected": {
+   "tgt": null,
+   "lock": null
+  }
+ },
+ {
   "kind": "chain",
   "name": "headshot",
   "input": {

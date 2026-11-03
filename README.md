@@ -57,6 +57,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - Model auto-downloads `yolov8s.pt` on first run (git-ignored, 21MB).
 - ONNX: `python export_v8.py yolov8s.pt 320 onnx` -> `yolov8s.onnx` (git-ignored, 43MB), then set `config.py:v8Model = "yolov8s.onnx"`.
 - TensorRT: `python export_v8.py yolov8s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "yolov8s.engine"`.
+- Tracking: `v8Track` (ByteTrack IDs via `trackers/bytetrack-aim.yaml`, `persist=True`) + `select_locked` ID lock in `aim.py` (`aaTrackMinConf`, `aaTrackBuffer`); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer.
 - Config (`config.py`): `v8Model` (`yolo11s.pt`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`sendinput` default, `win32` legacy).
 - Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
 - MAKCU: set `config.py:aaMouseBackend = "makcu"`, `aaMakcuPort` (e.g. `"COM3"`, below COM10), `aaMakcuBaud` (115200 default, or 4000000 after toggling the device: press its button 4x in 2s). Sends `km.move(dx,dy)\r` per tick, zero moves skipped, handle closed on exit. Needs CH343 driver + AIO/test tool closed. 2PC setups run the bot on the second PC.

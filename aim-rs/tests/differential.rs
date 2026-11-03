@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, headshot_offset, select_target, smooth_move, Det};
+use aim_rs::{aim_step, headshot_offset, select_locked, select_target, smooth_move, Det};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -43,6 +43,35 @@ struct SmoothIn {
 struct OffsetIn {
     h: f64,
     headshot_mode: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct LockedTgt {
+    x: f64,
+    y: f64,
+    h: f64,
+    tid: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LockedExp {
+    tgt: Option<LockedTgt>,
+    lock: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LockedIn {
+    dets: Vec<[f64; 6]>,
+    ids: Vec<Option<i64>>,
+    locked: Option<i64>,
+    cw: f64,
+    ch: f64,
+    center: bool,
+    last: Option<[f64; 2]>,
+    sticky_px: f64,
+    fov: Option<[f64; 2]>,
+    max_box_h: f64,
+    min_conf: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -114,6 +143,28 @@ fn differential_vectors() {
                 let exp: [i64; 2] = serde_json::from_value(c.expected.clone()).unwrap();
                 let got = smooth_move(inp.dx, inp.dy, inp.smooth, inp.max_step, inp.deadzone, 0.0, 0);
                 assert_eq!(got, (exp[0], exp[1]), "smooth/{}", c.name);
+            }
+            "locked" => {
+                let inp: LockedIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: LockedExp = serde_json::from_value(c.expected.clone()).unwrap();
+                let dets = to_dets(&inp.dets);
+                let ids: Vec<i64> = inp.ids.iter().map(|o| o.unwrap_or(-1)).collect();
+                let (t, lock) = select_locked(
+                    &dets,
+                    &ids,
+                    inp.locked,
+                    inp.cw,
+                    inp.ch,
+                    inp.center,
+                    inp.last.map(|l| (l[0], l[1])),
+                    inp.sticky_px,
+                    inp.fov.map(|f| (f[0], f[1])),
+                    inp.max_box_h,
+                    inp.min_conf,
+                );
+                let got_tgt = t.map(|(x, y, h, tid)| LockedTgt { x, y, h, tid });
+                assert_eq!(got_tgt.map(|g| (g.x, g.y, g.h, g.tid)), exp.tgt.map(|e| (e.x, e.y, e.h, e.tid)), "locked/{}/tgt", c.name);
+                assert_eq!(lock, exp.lock, "locked/{}/lock", c.name);
             }
             "chain" => {
                 let inp: ChainIn = serde_json::from_value(c.input.clone()).unwrap();

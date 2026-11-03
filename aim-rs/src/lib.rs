@@ -120,6 +120,61 @@ pub fn headshot_offset(h: f64, headshot_mode: bool) -> f64 {
     h * k
 }
 
+/// ID-stable selection over parallel detection/id slices.
+/// Mirrors `aim.select_locked`: keep `locked` when present with
+/// `conf >= min_conf` (highest conf on ties), else fall back to
+/// [`select_target`] and adopt the picked row's id (-1/None = unknown).
+/// Returns `(target, new_lock)` with target `(x_mid, y_mid, h, tid)`.
+#[allow(clippy::too_many_arguments)]
+pub fn select_locked(
+    dets: &[Det],
+    ids: &[i64],
+    locked: Option<i64>,
+    cw: f64,
+    ch: f64,
+    center: bool,
+    last: Option<(f64, f64)>,
+    sticky_px: f64,
+    fov: Option<(f64, f64)>,
+    max_box_h: f64,
+    min_conf: f64,
+) -> (Option<(f64, f64, f64, Option<i64>)>, Option<i64>) {
+    let norm = |t: i64| if t < 0 { None } else { Some(t) };
+    if let Some(lk) = locked {
+        let mut best: Option<usize> = None;
+        let mut best_c = -1.0f64;
+        for (i, d) in dets.iter().enumerate() {
+            let tid = ids.get(i).copied().and_then(norm);
+            if tid == Some(lk) && d.conf >= min_conf && d.conf > best_c {
+                best = Some(i);
+                best_c = d.conf;
+            }
+        }
+        if let Some(i) = best {
+            let d = &dets[i];
+            return (
+                Some((d.mid_x(), d.mid_y(), d.height(), Some(lk))),
+                Some(lk),
+            );
+        }
+    }
+    match select_target(dets, cw, ch, center, last, sticky_px, fov, max_box_h) {
+        None => (None, None),
+        Some((xm, ym, h)) => {
+            let mut tid = None;
+            for (i, d) in dets.iter().enumerate() {
+                if (d.mid_x() - xm).abs() < 1e-9
+                    && (d.mid_y() - ym).abs() < 1e-9
+                    && (d.height() - h).abs() < 1e-9
+                {
+                    tid = ids.get(i).copied().and_then(norm);
+                    break;
+                }
+            }
+            (Some((xm, ym, h, tid)), tid)
+        }
+    }
+}
 /// CPython `round()` semantics: round-half-to-even.
 fn round_half_even(x: f64) -> f64 {
     let f = x.floor();

@@ -94,6 +94,39 @@ def offset_cases():
     return cases
 
 
+def locked_cases():
+    from aim import select_locked
+    import numpy as np
+    cases = []
+
+    def add(name, dets, ids, locked, cw=160.0, ch=160.0, center=True,
+            last=None, sticky=80.0, fov=None, max_box_h=0.0, min_conf=0.3):
+        arr = np.array(dets, dtype=np.float64).reshape(-1, 6)
+        tgt, new_lock = select_locked(
+            arr, ids, locked, cw, ch, center=center,
+            last=tuple(last) if last else None,
+            sticky_px=sticky, fov=tuple(fov) if fov else None,
+            max_box_h=max_box_h, min_conf=min_conf)
+        cases.append({"kind": "locked", "name": name,
+                      "input": {"dets": dets, "ids": ids, "locked": locked,
+                                "cw": cw, "ch": ch, "center": center,
+                                "last": last, "sticky_px": sticky, "fov": fov,
+                                "max_box_h": max_box_h, "min_conf": min_conf},
+                      "expected": {
+                          "tgt": ({"x": tgt[0], "y": tgt[1], "h": tgt[2],
+                                   "tid": tgt[3]} if tgt else None),
+                          "lock": new_lock}})
+
+    add("keep-lock", FRAME_A, [7, 3], 3)
+    add("keep-lock-lowconf", FRAME_A, [7, 3], 7, min_conf=0.95)
+    add("relock-other", FRAME_A, [7, 3], 99)
+    add("no-lock-picks-center", FRAME_A, [7, 3], None)
+    add("no-id-fallback", FRAME_A, [None, None], 7)
+    add("neg-id-means-none", FRAME_A, [-1, -1], -1)
+    add("empty", [], [], 5)
+    return cases
+
+
 def chain_cases():
     """Full main_v8.py tick math: select -> headshot offset -> amp -> smooth."""
     import numpy as np
@@ -134,7 +167,8 @@ def chain_cases():
 
 
 def main():
-    vectors = select_cases() + smooth_cases() + offset_cases() + chain_cases()
+    vectors = (select_cases() + smooth_cases() + offset_cases()
+               + locked_cases() + chain_cases())
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

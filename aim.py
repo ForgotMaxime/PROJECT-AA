@@ -83,6 +83,50 @@ def select_target(dets, cWidth, cHeight, center=True, last=None, sticky_px=80,
     return float(mid[j, 0]), float(mid[j, 1]), float(dets[i, 3] - dets[i, 1])
 
 
+def _norm_tid(tid):
+    if tid is None:
+        return None
+    tid = int(tid)
+    return None if tid < 0 else tid
+
+
+def select_locked(dets, ids, locked_id, cWidth, cHeight, center=True, last=None,
+                  sticky_px=80, fov=None, max_box_h=0, min_conf=0.3):
+    """ID-stable selection over dets (N,6) with parallel ids (-1/None = no id).
+
+    If locked_id is present with conf >= min_conf, keep it (highest conf on ties).
+    Else fall back to select_target. Pure: mirrored by the aim-rs port.
+    Returns ((xMid, yMid, h, tid), new_locked_id); tid None when unknown.
+    """
+    arr = np.asarray(dets, dtype=np.float64).reshape(-1, 6)
+    ids = list(ids)
+    locked_id = _norm_tid(locked_id)
+    if locked_id is not None and len(arr):
+        best, best_c = -1, -1.0
+        for i, tid in enumerate(ids):
+            tid = _norm_tid(tid)
+            c = float(arr[i, 4])
+            if tid == locked_id and c >= min_conf and c > best_c:
+                best, best_c = i, c
+        if best >= 0:
+            r = arr[best]
+            return ((float((r[0] + r[2]) / 2), float((r[1] + r[3]) / 2),
+                     float(r[3] - r[1]), locked_id), locked_id)
+    t = select_target(arr, cWidth, cHeight, center=center, last=last,
+                      sticky_px=sticky_px, fov=fov, max_box_h=max_box_h)
+    if t is None:
+        return None, None
+    xm, ym, h = t
+    tid = None
+    for i, r in enumerate(arr):
+        if (abs((r[0] + r[2]) / 2 - xm) < 1e-9
+                and abs((r[1] + r[3]) / 2 - ym) < 1e-9
+                and abs((r[3] - r[1]) - h) < 1e-9):
+            tid = _norm_tid(ids[i]) if i < len(ids) else None
+            break
+    return ((xm, ym, h, tid), tid)
+
+
 def smooth_move(dx, dy, smooth=2.0, max_step=40, deadzone=1, jitter=0, rng=None):
     """Humanize a raw (dx, dy) delta. Returns (mx, my) ints.
 

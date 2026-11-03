@@ -42,6 +42,12 @@ v8Conf = 0.25
 v8Iou = 0.5
 v8Device = 0
 
+# ByteTrack ID lock (main_v8.py). Off = sticky heuristic only.
+v8Track = True
+v8Tracker = "trackers/bytetrack-aim.yaml"
+aaTrackMinConf = 0.3
+aaTrackBuffer = 10
+
 # Mouse backend for main_v8.py: "sendinput" (default), "win32" (legacy) or "makcu"
 aaMouseBackend = "sendinput"
 

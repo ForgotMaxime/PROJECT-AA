@@ -6,7 +6,8 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import apply_ignore_rects, headshot_offset, select_target, smooth_move
+from aim import (apply_ignore_rects, headshot_offset, select_locked,
+                 select_target, smooth_move)
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -70,6 +71,10 @@ def main():
     mouse_backend = _cfg("aaMouseBackend", "sendinput")
     makcu_port = _cfg("aaMakcuPort", "COM3")
     makcu_baud = int(_cfg("aaMakcuBaud", 115200))
+    use_tracker = bool(_cfg("v8Track", True))
+    tracker_yaml = _cfg("v8Tracker", "trackers/bytetrack-aim.yaml")
+    track_min_conf = float(_cfg("aaTrackMinConf", 0.3))
+    track_buffer = int(_cfg("aaTrackBuffer", 10))
     hold_key = int(_cfg("aaHoldKey", 0x14))
     smooth = float(_cfg("aaSmooth", 2.0))
     max_step = int(_cfg("aaMaxStep", 40))
@@ -84,12 +89,17 @@ def main():
     dz_enter = float(_cfg("aaDzEnter", 2.5))
     dz_exit = float(_cfg("aaDzExit", 1.0))
 
-    detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou, device=device)
+    detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou,
+                         device=device,
+                         tracker=tracker_yaml if use_tracker else None)
 
     colors = np.random.uniform(0, 255, size=(2, 3))
     last_mid = None
     ema_h = None
     engaged = False
+    locked_id = None
+    lock_misses = 0
+    tracker_ok = use_tracker
     count = 0
     infer_ms = 0.0
     sTime = time.time()
@@ -110,11 +120,44 @@ def main():
             apply_ignore_rects(frame, ignore_rects)
 
         t0 = time.perf_counter()
-        dets = detector.infer(frame)
+        if tracker_ok:
+            try:
+                tr = detector.track(frame)
+            except Exception as e:
+                print(f"tracker failed, falling back to detect-only: {e}")
+                tracker_ok = False
+                tr = None
+            if tracker_ok and tr is not None:
+                dets = tr[:, :6]
+                ids = [int(v) for v in tr[:, 6].tolist()]
+                t4, new_lock = select_locked(
+                    dets, ids, locked_id, cWidth, cHeight,
+                    center=centerOfScreen, last=last_mid,
+                    sticky_px=sticky_px, fov=fov, max_box_h=max_box_h,
+                    min_conf=track_min_conf)
+                if t4 is None:
+                    lock_misses += 1
+                    if lock_misses > track_buffer:
+                        locked_id = None
+                        lock_misses = 0
+                    tgt = None
+                else:
+                    lock_misses = 0
+                    locked_id = new_lock
+                    tgt = t4[:3]
+            else:
+                dets = detector.infer(frame)
+                tgt = select_target(dets, cWidth, cHeight,
+                                    center=centerOfScreen, last=last_mid,
+                                    sticky_px=sticky_px, fov=fov,
+                                    max_box_h=max_box_h)
+        else:
+            dets = detector.infer(frame)
+            tgt = select_target(dets, cWidth, cHeight,
+                                center=centerOfScreen, last=last_mid,
+                                sticky_px=sticky_px, fov=fov,
+                                max_box_h=max_box_h)
         infer_ms += ((time.perf_counter() - t0) * 1000.0 - infer_ms) * 0.1
-        tgt = select_target(dets, cWidth, cHeight, center=centerOfScreen,
-                            last=last_mid, sticky_px=sticky_px, fov=fov,
-                            max_box_h=max_box_h)
 
         if tgt is not None:
             xMid, yMid, box_h = tgt
