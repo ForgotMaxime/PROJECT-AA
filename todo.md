@@ -27,7 +27,7 @@
 ## Écart techno (état des lieux, réf SunOne v2 `sources/sunone_aimbot_2/docs/config.md`)
 - [x] Overlay/GUI de tuning live (`gui_live.py` DearPyGui + `--gui`, 16 réglages + stats)
 - [x] Mouvements humanisés : segments/Bézier natifs MAKCU (`aaMakcuSegments`, `aaMakcuBezier`, vérifié loopback)
-- [ ] Conversion FOV/sensibilité (pixels → souris via FOV jeu + profils, pas scalaire aveugle)
+- [x] Conversion FOV/sensibilité (`aaGameFovX/Y`, `aaSens/Yaw/Pitch`, `aaScreenW/H` auto-fenêtre — `aim.fov_to_counts`, miroir Rust, 9 vecteurs ; 0 = legacy amp, défaut inchangé)
 - [ ] Courbe de vitesse (exposant, snap radius/boost) + WindMouse + recoil
 - [ ] Modèle 2 classes (player + head) puis fine-tuné Fortnite — plafond actuel = COCO 1 classe
 - [ ] Overlay avec compensation de latence (boîtes décalées de l'âge frame)

@@ -94,6 +94,33 @@ def offset_cases():
     return cases
 
 
+def fov_cases():
+    from aim import fov_to_counts
+    cases = []
+
+    def add(name, dx_px, dy_px, sw=1920.0, sh=1080.0, fx=80.0, fy=60.0,
+            sens=1.0, yaw=0.022, pitch=0.022, speed=0.7):
+        got = fov_to_counts(dx_px, dy_px, sw, sh, fx, fy,
+                            sens, yaw, pitch, speed)
+        cases.append({"kind": "fov", "name": name,
+                      "input": {"dx_px": dx_px, "dy_px": dy_px,
+                                "screen_w": sw, "screen_h": sh,
+                                "fov_x": fx, "fov_y": fy, "sens": sens,
+                                "yaw": yaw, "pitch": pitch, "speed": speed},
+                      "expected": list(got)})
+
+    add("centered", 0.0, 0.0)
+    add("right-100", 100.0, 0.0)
+    add("up-50", 0.0, -50.0)
+    add("diag", -80.0, 40.0)
+    add("full-speed", 100.0, 0.0, speed=1.0)
+    add("sens-2", 100.0, 0.0, sens=2.0)
+    add("off-fov", 100.0, 50.0, fx=0.0, fy=0.0)
+    add("zero-yaw", 100.0, 0.0, yaw=0.0)
+    add("zero-sens", 100.0, 0.0, sens=0.0)
+    return cases
+
+
 def klead_cases():
     from aim import Kalman2D
     cases = []
@@ -235,7 +262,8 @@ def chain_cases():
 
 def main():
     vectors = (select_cases() + smooth_cases() + offset_cases()
-               + klead_cases() + own_cases() + locked_cases() + chain_cases())
+               + klead_cases() + own_cases() + locked_cases() + chain_cases()
+               + fov_cases())
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

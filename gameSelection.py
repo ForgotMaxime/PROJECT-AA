@@ -121,4 +121,9 @@ def gameSelection(title_filter=None, shift_x=0, shift_y=0,
         return
     camera.start(target_fps=120, video_mode=True)
 
-    return camera, cWidth, cHeight
+    try:
+        win_w = int(videoGameWindow.right - videoGameWindow.left)
+        win_h = int(videoGameWindow.bottom - videoGameWindow.top)
+    except Exception:
+        win_w, win_h = 0, 0
+    return camera, cWidth, cHeight, win_w, win_h

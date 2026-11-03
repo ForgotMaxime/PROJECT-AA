@@ -222,6 +222,45 @@ pub fn select_locked(
         }
     }
 }
+/// SunOne-style pixels -> mouse-counts conversion, fixed for center-crop.
+///
+/// Mirrors `aim.fov_to_counts` bit-exactly (same op order): full game-window
+/// size in the denominator, not the capture size. Returns `(0.0, 0.0)` when
+/// disabled/invalid.
+pub fn fov_to_counts(
+    dx_px: f64,
+    dy_px: f64,
+    screen_w: f64,
+    screen_h: f64,
+    fov_x: f64,
+    fov_y: f64,
+    sens: f64,
+    yaw: f64,
+    pitch: f64,
+    speed: f64,
+    base_fov: f64,
+    fov_scaled: bool,
+) -> (f64, f64) {
+    if !dx_px.is_finite() || !dy_px.is_finite() || !screen_w.is_finite() || !screen_h.is_finite() {
+        return (0.0, 0.0);
+    }
+    if fov_x <= 0.0 || fov_y <= 0.0 || sens == 0.0 || yaw == 0.0 || pitch == 0.0 {
+        return (0.0, 0.0);
+    }
+    let scale = if fov_scaled && base_fov > 1.0 { fov_x / base_fov } else { 1.0 };
+    let den_x = sens * yaw * scale;
+    let den_y = sens * pitch * scale;
+    if den_x == 0.0 || den_y == 0.0 {
+        return (0.0, 0.0);
+    }
+    let dx = dx_px * (fov_x / screen_w.max(1.0)) / den_x * speed;
+    let dy = dy_px * (fov_y / screen_h.max(1.0)) / den_y * speed;
+    if !dx.is_finite() || !dy.is_finite() {
+        return (0.0, 0.0);
+    }
+    (dx, dy)
+}
+
 /// CPython `round()` semantics: round-half-to-even.
 fn round_half_even(x: f64) -> f64 {
     let f = x.floor();

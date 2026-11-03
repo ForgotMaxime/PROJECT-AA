@@ -73,7 +73,8 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 
 - `screenShotHeight/Width` (default 320): capture box around screen center
 - `useMask`, `maskSide` (`left`/`right`), `maskWidth`, `maskHeight`
-- `aaMovementAmp` (default 0.4, try 0.5-2): mouse amplification
+- `aaMovementAmp` (default 0.7): legacy scalar px→counts; trims FOV mode as speed when enabled
+- `aaGameFovX/Y` (default 0 = off/legacy): in-game FOV for physical px→counts conversion (`aim.fov_to_counts`, SunOne-style but fixed to full window size, not capture size); `aaSens`/`aaYaw`/`aaPitch` (default 1.0/0.022/0.022), `aaScreenW/H` (0 = auto window size). GUI-live: game fov x/y + sens sliders.
 - `confidence` (default 0.4)
 - `headshot_mode` (default True: 0.38 box height offset, else 0.2), or direct `aaAimOffset` fraction (0.0 = exact box center, takes precedence; `None` = use `headshot_mode`)
 - `centerOfScreen` (default True): pick closest-to-center target
@@ -94,7 +95,7 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 ## Rust port + differential testing (`aim-rs/`)
 
 - `aim-rs/src/lib.rs`: port of `aim.py` (`select_target`, `smooth_move`, full-tick `aim_step`). Banker's rounding replicated to match CPython `round()`; jitter uses an explicit seeded xorshift stream (different from CPython's MT by design — deterministic core tested differentially, jitter via contract test).
-- Harness 1 (unit): `tools/dump_vectors.py` generates 29 vectors from `aim.py` into `aim-rs/tests/vectors/vectors.json`; `cargo test` replays them with exact comparison.
+- Harness 1 (unit): `tools/dump_vectors.py` generates 81 vectors from `aim.py` into `aim-rs/tests/vectors/vectors.json`; `cargo test` replays them with exact comparison.
 - Harness 2 (integration): `chain/*` vectors cover the full `dets -> dx/dy` tick (select + headshot offset + amp + smooth), mirroring `main_v8.py`.
 - Regen + test: `python tools/dump_vectors.py` then `cargo test --manifest-path aim-rs/Cargo.toml`.
 

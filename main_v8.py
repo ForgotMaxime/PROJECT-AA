@@ -8,8 +8,8 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import (Kalman2D, apply_ignore_rects, headshot_offset, reject_own,
-                 select_locked, select_target, smooth_move)
+from aim import (Kalman2D, apply_ignore_rects, fov_to_counts, headshot_offset,
+                 reject_own, select_locked, select_target, smooth_move)
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -100,9 +100,14 @@ def main(source=None, max_ticks=0):
         if selection is None:
             print("Game selection failed, exiting.")
             return
-        camera, cWidth, cHeight = selection
+        if len(selection) == 5:
+            camera, cWidth, cHeight, win_w, win_h = selection
+        else:  # backward compat (tests inject a 3-tuple source)
+            camera, cWidth, cHeight = selection[:3]
+            win_w, win_h = 0, 0
     else:
-        camera, cWidth, cHeight = source
+        camera, cWidth, cHeight = source[:3]
+        win_w, win_h = 0, 0
 
     useMask = _cfg("useMask", False)
     maskSide = str(_cfg("maskSide", "left")).lower()
@@ -167,6 +172,17 @@ def main(source=None, max_ticks=0):
     coast_max = int(_cfg("aaCoastMax", 5))
     lock_hold = int(_cfg("aaLockHold", 8))
     lead_vmax = (lead_max / lead_t) if lead_t > 0 else 0.0
+    # FOV conversion geometry: full window size, 0 = auto/fallback.
+    game_fov_x = float(_cfg("aaGameFovX", 0))
+    game_fov_y = float(_cfg("aaGameFovY", 0))
+    game_sens = float(_cfg("aaSens", 1.0))
+    game_yaw = float(_cfg("aaYaw", 0.022))
+    game_pitch = float(_cfg("aaPitch", 0.022))
+    screen_w = int(_cfg("aaScreenW", 0)) or int(win_w or 0)
+    screen_h = int(_cfg("aaScreenH", 0)) or int(win_h or 0)
+    if game_fov_x > 0 and game_fov_y > 0:
+        print(f"FOV convert: fov {game_fov_x}/{game_fov_y} sens {game_sens} "
+              f"yaw/pitch {game_yaw}/{game_pitch} screen {screen_w}x{screen_h}")
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou,
                          device=device,
@@ -267,6 +283,11 @@ def main(source=None, max_ticks=0):
         # Live-tunable subset: the GUI writes config attrs directly, the loop
         # re-reads them every tick (single thread, no locks needed).
         aaMovementAmp = float(_cfg("aaMovementAmp", 0.7))
+        game_fov_x = float(_cfg("aaGameFovX", 0))
+        game_fov_y = float(_cfg("aaGameFovY", 0))
+        game_sens = float(_cfg("aaSens", 1.0))
+        game_yaw = float(_cfg("aaYaw", 0.022))
+        game_pitch = float(_cfg("aaPitch", 0.022))
         smooth = float(_cfg("aaSmooth", 1.3))
         max_step = int(_cfg("aaMaxStep", 60))
         conf = float(_cfg("v8Conf", 0.25))
@@ -402,8 +423,16 @@ def main(source=None, max_ticks=0):
                 aim_dbg = (ax, ay)
             # aaShiftX/Y: same shift as the capture region, so aim stays exact
             # while the selection center moves (ex-aaRightShift).
-            raw_dx = (ax + shift_x - cWidth) * aaMovementAmp
-            raw_dy = (ay + shift_y - offset - cHeight) * aaMovementAmp
+            px = ax + shift_x - cWidth
+            py = ay + shift_y - offset - cHeight
+            if game_fov_x > 0 and game_fov_y > 0 and screen_w > 0 and screen_h > 0:
+                # Physical mode: px -> angle -> counts, amp trims as speed.
+                raw_dx, raw_dy = fov_to_counts(
+                    px, py, screen_w, screen_h, game_fov_x, game_fov_y,
+                    game_sens, game_yaw, game_pitch, aaMovementAmp)
+            else:
+                raw_dx = px * aaMovementAmp
+                raw_dy = py * aaMovementAmp
             mag = float(np.hypot(raw_dx, raw_dy))
             # Deadzone hysteresis: engage above enter, release below exit.
             if (engaged and mag < dz_exit) or (not engaged and mag < dz_enter):

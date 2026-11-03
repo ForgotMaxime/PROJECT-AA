@@ -2066,5 +2066,185 @@
    "mv": null,
    "last": null
   }
+ },
+ {
+  "kind": "fov",
+  "name": "centered",
+  "input": {
+   "dx_px": 0.0,
+   "dy_px": 0.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 1.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   0.0,
+   0.0
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "right-100",
+  "input": {
+   "dx_px": 100.0,
+   "dy_px": 0.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 1.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   132.57575757575756,
+   0.0
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "up-50",
+  "input": {
+   "dx_px": 0.0,
+   "dy_px": -50.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 1.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   0.0,
+   -88.38383838383838
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "diag",
+  "input": {
+   "dx_px": -80.0,
+   "dy_px": 40.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 1.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   -106.06060606060605,
+   70.70707070707071
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "full-speed",
+  "input": {
+   "dx_px": 100.0,
+   "dy_px": 0.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 1.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 1.0
+  },
+  "expected": [
+   189.39393939393938,
+   0.0
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "sens-2",
+  "input": {
+   "dx_px": 100.0,
+   "dy_px": 0.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 2.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   66.28787878787878,
+   0.0
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "off-fov",
+  "input": {
+   "dx_px": 100.0,
+   "dy_px": 50.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 0.0,
+   "fov_y": 0.0,
+   "sens": 1.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   0.0,
+   0.0
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "zero-yaw",
+  "input": {
+   "dx_px": 100.0,
+   "dy_px": 0.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 1.0,
+   "yaw": 0.0,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   0.0,
+   0.0
+  ]
+ },
+ {
+  "kind": "fov",
+  "name": "zero-sens",
+  "input": {
+   "dx_px": 100.0,
+   "dy_px": 0.0,
+   "screen_w": 1920.0,
+   "screen_h": 1080.0,
+   "fov_x": 80.0,
+   "fov_y": 60.0,
+   "sens": 0.0,
+   "yaw": 0.022,
+   "pitch": 0.022,
+   "speed": 0.7
+  },
+  "expected": [
+   0.0,
+   0.0
+  ]
  }
 ]

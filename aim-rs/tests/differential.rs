@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, headshot_offset, reject_own, select_locked, select_target, smooth_move, Det, Kalman2D};
+use aim_rs::{aim_step, fov_to_counts, headshot_offset, reject_own, select_locked, select_target, smooth_move, Det, Kalman2D};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -119,6 +119,20 @@ struct ChainIn {
 struct ChainExp {
     mv: Option<[i64; 2]>,
     last: Option<[f64; 2]>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FovIn {
+    dx_px: f64,
+    dy_px: f64,
+    screen_w: f64,
+    screen_h: f64,
+    fov_x: f64,
+    fov_y: f64,
+    sens: f64,
+    yaw: f64,
+    pitch: f64,
+    speed: f64,
 }
 
 fn to_dets(rows: &[[f64; 6]]) -> Vec<Det> {
@@ -250,6 +264,16 @@ fn differential_vectors() {
                 let exp: f64 = serde_json::from_value(c.expected.clone()).unwrap();
                 let got = headshot_offset(inp.h, inp.headshot_mode);
                 assert_eq!(got, exp, "offset/{}", c.name);
+            }
+            "fov" => {
+                let inp: FovIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: [f64; 2] = serde_json::from_value(c.expected.clone()).unwrap();
+                let got = fov_to_counts(
+                    inp.dx_px, inp.dy_px, inp.screen_w, inp.screen_h,
+                    inp.fov_x, inp.fov_y, inp.sens, inp.yaw, inp.pitch,
+                    inp.speed, 0.0, false,
+                );
+                assert_eq!([got.0, got.1], exp, "fov/{}", c.name);
             }
             other => panic!("unknown vector kind: {other}"),
         }

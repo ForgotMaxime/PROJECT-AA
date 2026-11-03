@@ -164,6 +164,41 @@ def select_locked(dets, ids, locked_id, cWidth, cHeight, center=True, last=None,
     return ((xm, ym, h, tid), tid)
 
 
+def fov_to_counts(dx_px, dy_px, screen_w, screen_h, fov_x, fov_y,
+                  sens=1.0, yaw=0.022, pitch=0.022, speed=1.0,
+                  base_fov=0.0, fov_scaled=False):
+    """SunOne-style pixels -> mouse-counts conversion, fixed for center-crop.
+
+    SunOne divides by the capture size; we divide by the full game-window
+    size instead: the capture is a 1:1 center crop, so 1 capture px =
+    1 screen px and deg/px = game FOV / full window width. Using the
+    capture size here overestimates the move ~6x (1920/320).
+    Returns (dx, dy) float counts; (0.0, 0.0) when disabled/invalid.
+    Pure math: mirrored by the aim-rs port (same op order).
+    """
+    dx_px, dy_px = float(dx_px), float(dy_px)
+    sw, sh = float(screen_w), float(screen_h)
+    fx, fy = float(fov_x), float(fov_y)
+    sens, yaw, pitch = float(sens), float(yaw), float(pitch)
+    speed = float(speed)
+    if not (math.isfinite(dx_px) and math.isfinite(dy_px)
+            and math.isfinite(sw) and math.isfinite(sh)):
+        return 0.0, 0.0
+    if fx <= 0.0 or fy <= 0.0 or sens == 0.0 or yaw == 0.0 or pitch == 0.0:
+        return 0.0, 0.0
+    bf = float(base_fov)
+    scale = fx / bf if (fov_scaled and bf > 1.0) else 1.0
+    den_x = sens * yaw * scale
+    den_y = sens * pitch * scale
+    if den_x == 0.0 or den_y == 0.0:
+        return 0.0, 0.0
+    dx = dx_px * (fx / max(1.0, sw)) / den_x * speed
+    dy = dy_px * (fy / max(1.0, sh)) / den_y * speed
+    if not (math.isfinite(dx) and math.isfinite(dy)):
+        return 0.0, 0.0
+    return dx, dy
+
+
 def smooth_move(dx, dy, smooth=2.0, max_step=40, deadzone=1, jitter=0, rng=None):
     """Humanize a raw (dx, dy) delta. Returns (mx, my) ints.
 

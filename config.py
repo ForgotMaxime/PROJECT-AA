@@ -8,8 +8,22 @@ maskSide = "left"
 maskWidth = 80
 maskHeight = 200
 
-# Autoaim mouse movement amplifier
+# Autoaim mouse movement amplifier (legacy scalar mode; also trims FOV mode)
 aaMovementAmp = .7
+
+# Game FOV conversion (SunOne-style, fixed): pixels -> mouse counts via the
+# real game FOV + sensitivity instead of the blind aaMovementAmp scalar.
+# 0 = off (legacy amp mode, current behavior). Set both to your in-game FOV
+# (e.g. Fortnite ~80/60) to enable. screen W/H: full game window size,
+# 0 = auto (window size at startup). sens/yaw/pitch: yaw/pitch are
+# degrees per count at sens 1 (SunOne defaults 0.022/0.022).
+aaGameFovX = 0
+aaGameFovY = 0
+aaSens = 1.0
+aaYaw = 0.022
+aaPitch = 0.022
+aaScreenW = 0
+aaScreenH = 0
 
 # Person Class Confidence
 confidence = 0.4

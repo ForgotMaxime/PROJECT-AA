@@ -26,6 +26,9 @@ SLIDERS = [
     ("g_dzenter", "dz enter", "aaDzEnter", 0.0, 10.0),
     ("g_jitter", "jitter", "aaJitter", 0.0, 5.0),
     ("g_dz", "deadzone", "aaDeadzone", 0.0, 5.0),
+    ("g_gamefovx", "game fov x", "aaGameFovX", 0.0, 120.0),
+    ("g_gamefovy", "game fov y", "aaGameFovY", 0.0, 90.0),
+    ("g_sens", "sens", "aaSens", 0.1, 10.0),
 ]
 # Note: shift/crop stay static (capture region is built once at startup).
 
