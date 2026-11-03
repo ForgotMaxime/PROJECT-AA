@@ -6,7 +6,7 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import (apply_ignore_rects, headshot_offset, select_locked,
+from aim import (Kalman2D, apply_ignore_rects, headshot_offset, select_locked,
                  select_target, smooth_move)
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
@@ -88,6 +88,14 @@ def main():
     max_box_h = float(_cfg("aaMaxBoxH", 0))
     dz_enter = float(_cfg("aaDzEnter", 2.5))
     dz_exit = float(_cfg("aaDzExit", 1.0))
+    aa_predict = bool(_cfg("aaPredict", True))
+    lead_t = float(_cfg("aaLeadT", 0.05))
+    lead_max = float(_cfg("aaLeadMax", 30.0))
+    gate_px = float(_cfg("aaGatePx", 60.0))
+    kalman_q = float(_cfg("aaKalmanQ", 4e6))
+    kalman_r = float(_cfg("aaKalmanR", 50.0))
+    coast_max = int(_cfg("aaCoastMax", 5))
+    lead_vmax = (lead_max / lead_t) if lead_t > 0 else 0.0
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou,
                          device=device,
@@ -100,6 +108,10 @@ def main():
     locked_id = None
     lock_misses = 0
     tracker_ok = use_tracker
+    kf = None
+    kf_id = None
+    kf_coast = 0
+    last_t = None
     count = 0
     infer_ms = 0.0
     sTime = time.time()
@@ -140,6 +152,8 @@ def main():
                     if lock_misses > track_buffer:
                         locked_id = None
                         lock_misses = 0
+                        kf = None
+                        kf_id = None
                     tgt = None
                 else:
                     lock_misses = 0
@@ -159,14 +173,33 @@ def main():
                                 max_box_h=max_box_h)
         infer_ms += ((time.perf_counter() - t0) * 1000.0 - infer_ms) * 0.1
 
+        now = time.perf_counter()
+        dt = min(0.2, max(0.005, now - last_t)) if last_t is not None else 1 / 30.0
+        last_t = now
+        aim_dbg = None
+
         if tgt is not None:
             xMid, yMid, box_h = tgt
             ema_h = box_h if ema_h is None else 0.3 * box_h + 0.7 * ema_h
             offset = headshot_offset(ema_h, headshot_mode)
+            if aa_predict:
+                key = locked_id if use_tracker else True
+                if kf is None or kf_id != key:
+                    kf = Kalman2D(xMid, yMid, q=kalman_q)
+                    kf_id = key
+                    kf_coast = 0
+                else:
+                    kf.predict(dt)
+                    kf.update(xMid, yMid, kalman_r, gate_px)
+                    kf_coast = 0
+                ax, ay = kf.ahead(lead_t, lead_vmax)
+                aim_dbg = (ax, ay)
+            else:
+                ax, ay = xMid, yMid
             # aaShiftX/Y: same shift as the capture region, so aim stays exact
             # while the selection center moves (ex-aaRightShift).
-            raw_dx = (xMid + shift_x - cWidth) * aaMovementAmp
-            raw_dy = (yMid + shift_y - offset - cHeight) * aaMovementAmp
+            raw_dx = (ax + shift_x - cWidth) * aaMovementAmp
+            raw_dy = (ay + shift_y - offset - cHeight) * aaMovementAmp
             mag = float(np.hypot(raw_dx, raw_dy))
             # Deadzone hysteresis: engage above enter, release below exit.
             if (engaged and mag < dz_exit) or (not engaged and mag < dz_enter):
@@ -181,6 +214,9 @@ def main():
                                   port=makcu_port, baud=makcu_baud)
             last_mid = (xMid, yMid)
         else:
+            if kf is not None and kf_coast < coast_max:
+                kf.predict(dt)
+                kf_coast += 1
             last_mid = None
             ema_h = None
             engaged = False
@@ -191,6 +227,9 @@ def main():
                 cv2.rectangle(view, (int(x1), int(y1)), (int(x2), int(y2)), colors[0].tolist(), 2)
                 cv2.putText(view, f"Human: {c * 100:.1f}%", (int(x1), max(15, int(y1) - 10)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors[0].tolist(), 2)
+            if aim_dbg is not None:
+                cv2.drawMarker(view, (int(aim_dbg[0]), int(aim_dbg[1])),
+                               (0, 255, 255), cv2.MARKER_DIAMOND, 12, 2)
             cv2.imshow("Live Feed v8", view)
             if (cv2.waitKey(1) & 0xFF) == ord("q"):
                 break

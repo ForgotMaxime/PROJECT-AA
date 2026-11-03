@@ -65,6 +65,15 @@ aaJitter = 0
 aaDzEnter = 2.5
 aaDzExit = 1.0
 
+# Target prediction (Kalman CV + lead). Off = aim at raw midpoint.
+aaPredict = True
+aaLeadT = 0.05
+aaLeadMax = 30.0
+aaGatePx = 60.0
+aaKalmanQ = 4e6
+aaKalmanR = 50.0
+aaCoastMax = 5
+
 # Target lock: keep last target within this radius, FOV box half-extents (0 = off)
 aaStickyPx = 80
 aaFovX = 0

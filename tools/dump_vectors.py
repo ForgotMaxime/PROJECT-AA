@@ -94,6 +94,31 @@ def offset_cases():
     return cases
 
 
+def klead_cases():
+    from aim import Kalman2D
+    cases = []
+
+    def add(name, zs, dt=1 / 30.0, r=50.0, q=4e6, gate=60.0,
+            t_lead=0.05, vmax=30.0):
+        k = Kalman2D(zs[0][0], zs[0][1], q=q)
+        for (zx, zy) in zs[1:]:
+            k.predict(dt)
+            k.update(zx, zy, r, gate)
+        ax, ay = k.ahead(t_lead, vmax)
+        cases.append({"kind": "klead", "name": name,
+                      "input": {"zs": zs, "dt": dt, "r": r, "q": q,
+                                "gate": gate, "t_lead": t_lead, "vmax": vmax},
+                      "expected": [ax, ay]})
+
+    add("static", [[100.0, 200.0]] * 6)
+    add("const-vel-x", [[100.0 + 10 * i, 200.0] for i in range(6)])
+    add("const-vel-diag", [[100.0 + 8 * i, 200.0 - 6 * i] for i in range(6)])
+    add("lead-unclamped", [[100.0 + 10 * i, 200.0] for i in range(6)], vmax=1000.0)
+    add("stop", [[100.0 + 10 * i, 200.0] for i in range(4)] + [[140.0, 200.0]] * 3)
+    add("outlier", [[100.0 + 10 * i, 200.0] for i in range(3)] + [[600.0, 200.0]] + [[130.0, 200.0]] * 2)
+    return cases
+
+
 def locked_cases():
     from aim import select_locked
     import numpy as np
@@ -168,7 +193,7 @@ def chain_cases():
 
 def main():
     vectors = (select_cases() + smooth_cases() + offset_cases()
-               + locked_cases() + chain_cases())
+               + klead_cases() + locked_cases() + chain_cases())
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

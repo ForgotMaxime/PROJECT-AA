@@ -151,3 +151,70 @@ def smooth_move(dx, dy, smooth=2.0, max_step=40, deadzone=1, jitter=0, rng=None)
         dx += r.uniform(-jitter, jitter)
         dy += r.uniform(-jitter, jitter)
     return int(round(dx)), int(round(dy))
+
+
+class KalmanCV:
+    """1D constant-velocity Kalman filter, plain floats only.
+
+    No numpy inside: op order is written to match the aim-rs port bit-exactly.
+    State [x, v], P symmetric [[p00, p01], [p01, p11]].
+    """
+
+    def __init__(self, x0=0.0, p_pos=25.0, p_vel=900.0, q=4e6):
+        self.x = float(x0)
+        self.v = 0.0
+        self.p00 = float(p_pos)
+        self.p01 = 0.0
+        self.p11 = float(p_vel)
+        self.q = float(q)
+
+    def predict(self, dt):
+        dt = float(dt)
+        dt2 = dt * dt
+        dt3 = dt2 * dt
+        dt4 = dt2 * dt2
+        self.x = self.x + self.v * dt
+        np00 = self.p00 + dt * (self.p01 + self.p01) + dt2 * self.p11 + self.q * dt4 / 4.0
+        np01 = self.p01 + dt * self.p11 + self.q * dt3 / 2.0
+        np11 = self.p11 + self.q * dt2
+        self.p00, self.p01, self.p11 = np00, np01, np11
+
+    def update(self, z, r, gate=0.0):
+        """Fuse measurement z (variance r). Returns False if gated as outlier."""
+        z = float(z)
+        if gate and abs(z - self.x) > float(gate):
+            return False
+        s = self.p00 + float(r)
+        k0 = self.p00 / s
+        k1 = self.p01 / s
+        y = z - self.x
+        self.x = self.x + k0 * y
+        self.v = self.v + k1 * y
+        p00, p01 = self.p00, self.p01
+        self.p00 = p00 - k0 * p00
+        self.p01 = p01 - k0 * p01
+        self.p11 = self.p11 - k1 * p01
+        return True
+
+    def ahead(self, t, vmax):
+        v = max(-float(vmax), min(float(vmax), self.v))
+        return self.x + v * float(t)
+
+
+class Kalman2D:
+    """Two independent KalmanCV axes. Mirrored by the aim-rs port."""
+
+    def __init__(self, x0=0.0, y0=0.0, p_pos=25.0, p_vel=900.0, q=4e6):
+        self.kx = KalmanCV(x0, p_pos, p_vel, q)
+        self.ky = KalmanCV(y0, p_pos, p_vel, q)
+
+    def predict(self, dt):
+        self.kx.predict(dt)
+        self.ky.predict(dt)
+
+    def update(self, zx, zy, r, gate=0.0):
+        return (self.kx.update(zx, r, gate),
+                self.ky.update(zy, r, gate))
+
+    def ahead(self, t, vmax):
+        return (self.kx.ahead(t, vmax), self.ky.ahead(t, vmax))

@@ -271,3 +271,84 @@ pub fn aim_step(
         }
     }
 }
+
+/// 1D constant-velocity Kalman filter. Mirrors `aim.KalmanCV` bit-exactly:
+/// plain f64 ops in the same order, no libm extras.
+#[derive(Debug, Clone)]
+pub struct KalmanCV {
+    pub x: f64,
+    pub v: f64,
+    p00: f64,
+    p01: f64,
+    p11: f64,
+    q: f64,
+}
+
+impl KalmanCV {
+    pub fn new(x0: f64, p_pos: f64, p_vel: f64, q: f64) -> Self {
+        Self { x: x0, v: 0.0, p00: p_pos, p01: 0.0, p11: p_vel, q }
+    }
+
+    pub fn predict(&mut self, dt: f64) {
+        let dt2 = dt * dt;
+        let dt3 = dt2 * dt;
+        let dt4 = dt2 * dt2;
+        self.x = self.x + self.v * dt;
+        let np00 =
+            self.p00 + dt * (self.p01 + self.p01) + dt2 * self.p11 + self.q * dt4 / 4.0;
+        let np01 = self.p01 + dt * self.p11 + self.q * dt3 / 2.0;
+        let np11 = self.p11 + self.q * dt2;
+        self.p00 = np00;
+        self.p01 = np01;
+        self.p11 = np11;
+    }
+
+    /// Returns false when gated as an outlier (state untouched).
+    pub fn update(&mut self, z: f64, r: f64, gate: f64) -> bool {
+        if gate != 0.0 && (z - self.x).abs() > gate {
+            return false;
+        }
+        let s = self.p00 + r;
+        let k0 = self.p00 / s;
+        let k1 = self.p01 / s;
+        let y = z - self.x;
+        self.x = self.x + k0 * y;
+        self.v = self.v + k1 * y;
+        let (p00, p01) = (self.p00, self.p01);
+        self.p00 = p00 - k0 * p00;
+        self.p01 = p01 - k0 * p01;
+        self.p11 = self.p11 - k1 * p01;
+        true
+    }
+
+    pub fn ahead(&self, t: f64, vmax: f64) -> f64 {
+        let v = self.v.clamp(-vmax, vmax);
+        self.x + v * t
+    }
+}
+
+/// Two independent [`KalmanCV`] axes. Mirrors `aim.Kalman2D`.
+#[derive(Debug, Clone)]
+pub struct Kalman2D {
+    pub kx: KalmanCV,
+    pub ky: KalmanCV,
+}
+
+impl Kalman2D {
+    pub fn new(x0: f64, y0: f64, p_pos: f64, p_vel: f64, q: f64) -> Self {
+        Self { kx: KalmanCV::new(x0, p_pos, p_vel, q), ky: KalmanCV::new(y0, p_pos, p_vel, q) }
+    }
+
+    pub fn predict(&mut self, dt: f64) {
+        self.kx.predict(dt);
+        self.ky.predict(dt);
+    }
+
+    pub fn update(&mut self, zx: f64, zy: f64, r: f64, gate: f64) -> (bool, bool) {
+        (self.kx.update(zx, r, gate), self.ky.update(zy, r, gate))
+    }
+
+    pub fn ahead(&self, t: f64, vmax: f64) -> (f64, f64) {
+        (self.kx.ahead(t, vmax), self.ky.ahead(t, vmax))
+    }
+}

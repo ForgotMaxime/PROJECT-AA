@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, headshot_offset, select_locked, select_target, smooth_move, Det};
+use aim_rs::{aim_step, headshot_offset, select_locked, select_target, smooth_move, Det, Kalman2D};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -43,6 +43,17 @@ struct SmoothIn {
 struct OffsetIn {
     h: f64,
     headshot_mode: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct KleadIn {
+    zs: Vec<[f64; 2]>,
+    dt: f64,
+    r: f64,
+    q: f64,
+    gate: f64,
+    t_lead: f64,
+    vmax: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -143,6 +154,17 @@ fn differential_vectors() {
                 let exp: [i64; 2] = serde_json::from_value(c.expected.clone()).unwrap();
                 let got = smooth_move(inp.dx, inp.dy, inp.smooth, inp.max_step, inp.deadzone, 0.0, 0);
                 assert_eq!(got, (exp[0], exp[1]), "smooth/{}", c.name);
+            }
+            "klead" => {
+                let inp: KleadIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: [f64; 2] = serde_json::from_value(c.expected.clone()).unwrap();
+                let mut k = Kalman2D::new(inp.zs[0][0], inp.zs[0][1], 25.0, 900.0, inp.q);
+                for z in inp.zs.iter().skip(1) {
+                    k.predict(inp.dt);
+                    k.update(z[0], z[1], inp.r, inp.gate);
+                }
+                let got = k.ahead(inp.t_lead, inp.vmax);
+                assert_eq!([got.0, got.1], exp, "klead/{}", c.name);
             }
             "locked" => {
                 let inp: LockedIn = serde_json::from_value(c.input.clone()).unwrap();
