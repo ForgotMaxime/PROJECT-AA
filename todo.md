@@ -30,8 +30,10 @@
 - [ ] Modèle fine-tuné Fortnite (hologrammes, skins) — plafond de précision actuel = COCO
 - [ ] YOLOv12/pose (tester `yolo12s`, `yolo11s-pose` pour visée tête directe)
 - [ ] Masque de profondeur (Depth-Anything) si les heuristiques anti-own-char saturent
-- [ ] Linux (absent), INT8 (risqué), triggerbot/recoil (confort)
 
 ## Écarté
 - [ ] ~~SAHI temps réel, RT-DETR, `best.onnx` YOLOv5~~ — trop lent / mort
 - [ ] ~~INT8, `torch.compile`~~ — avant P2, gains faibles vs risque
+
+## Tout à la fin
+- [ ] Linux (absent), INT8 (risqué), triggerbot/recoil (confort)
