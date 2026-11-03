@@ -2345,5 +2345,135 @@
    0.0,
    0.0
   ]
+ },
+ {
+  "kind": "speed",
+  "name": "at-zero",
+  "input": {
+   "dist_px": 0.0,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 0.5
+ },
+ {
+  "kind": "speed",
+  "name": "mid-ramp",
+  "input": {
+   "dist_px": 14.5,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 0.9375
+ },
+ {
+  "kind": "speed",
+  "name": "at-near",
+  "input": {
+   "dist_px": 25.0,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 1.0
+ },
+ {
+  "kind": "speed",
+  "name": "beyond-near",
+  "input": {
+   "dist_px": 100.0,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 1.0
+ },
+ {
+  "kind": "speed",
+  "name": "far-corner",
+  "input": {
+   "dist_px": 200.0,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 1.0
+ },
+ {
+  "kind": "speed",
+  "name": "no-near-flat",
+  "input": {
+   "dist_px": 100.0,
+   "snap_px": 4.0,
+   "near_px": 0.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 1.0
+ },
+ {
+  "kind": "speed",
+  "name": "no-snap",
+  "input": {
+   "dist_px": 2.0,
+   "snap_px": 0.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 0.610656
+ },
+ {
+  "kind": "speed",
+  "name": "exp-1-linear",
+  "input": {
+   "dist_px": 14.5,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 1.0
+  },
+  "expected": 0.75
+ },
+ {
+  "kind": "speed",
+  "name": "exp-2",
+  "input": {
+   "dist_px": 14.5,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 2.0
+  },
+  "expected": 0.875
+ },
+ {
+  "kind": "speed",
+  "name": "negative-dist",
+  "input": {
+   "dist_px": -5.0,
+   "snap_px": 4.0,
+   "near_px": 25.0,
+   "smin": 0.5,
+   "smax": 1.0,
+   "exp": 3.0
+  },
+  "expected": 0.5
  }
 ]

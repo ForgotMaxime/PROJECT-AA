@@ -199,13 +199,41 @@ def fov_to_counts(dx_px, dy_px, screen_w, screen_h, fov_x, fov_y,
     return dx, dy
 
 
-def smooth_move(dx, dy, smooth=2.0, max_step=40, deadzone=1, jitter=0, rng=None):
+def speed_curve(dist_px, snap_px=0.0, near_px=25.0, smin=0.5, smax=1.0,
+               exp=3.0):
+    """SunOne-style speed factor by true-pixel distance (continuous ramp).
+
+    - snap zone (dist < snap_px) is handled by the caller (boost + smooth
+      bypass); here the ramp starts at snap_px with smin and reaches smax
+      at near_px: smin + (smax-smin) * (1-(1-t)^exp), t in 0..1.
+    - At/after near_px (or near <= snap): flat smax.
+    Pure math: mirrored by the aim-rs port.
+    """
+    d = float(dist_px)
+    sn = float(snap_px)
+    nr = float(near_px)
+    smin, smax = float(smin), float(smax)
+    exp = float(exp)
+    if not math.isfinite(d) or d < 0.0:
+        return float(smin)
+    if not math.isfinite(nr) or nr <= max(sn, 0.0) or d >= nr:
+        return float(smax)
+    span = nr - max(sn, 0.0)
+    t = min(1.0, max(0.0, (d - max(sn, 0.0)) / span)) if span > 0 else 1.0
+    return smin + (smax - smin) * (1.0 - (1.0 - t) ** exp)
+
+
+def smooth_move(dx, dy, smooth=2.0, max_step=40, deadzone=1, jitter=0, rng=None,
+                quantize=True):
     """Humanize a raw (dx, dy) delta. Returns (mx, my) ints.
 
     - smooth >= 1: divisor (1 = instant, 2 = half speed...).
     - max_step: clamp per-tick magnitude, direction preserved.
     - deadzone: ignore moves smaller than this (pixels).
     - jitter: add uniform(-jitter, +jitter) noise on each axis.
+    - quantize: round to ints (legacy/mouse units). False keeps floats for
+      loop-side callers that convert units afterwards (FOV px -> counts):
+      sub-px corrections survive to the final rounding instead of dying here.
     """
     dx, dy = float(dx), float(dy)
     mag = math.hypot(dx, dy)
@@ -222,6 +250,8 @@ def smooth_move(dx, dy, smooth=2.0, max_step=40, deadzone=1, jitter=0, rng=None)
         r = rng or random
         dx += r.uniform(-jitter, jitter)
         dy += r.uniform(-jitter, jitter)
+    if not quantize:
+        return dx, dy
     return int(round(dx)), int(round(dy))
 
 

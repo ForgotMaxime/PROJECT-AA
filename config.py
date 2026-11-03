@@ -17,6 +17,19 @@ aaMovementAmp = .7
 # no left-right/up-down hunting appears.
 aaFovSpeed = 0.25
 
+# Speed curve by true-pixel error (SunOne-style, continuous): ramp from
+# aaSpeedMin at aaSnapPx to aaSpeedMax at aaNearPx (aaSpeedExp shape), flat
+# max beyond. Inside aaSnapPx the move gets aaSnapBoost and bypasses smooth
+# so the crosshair punches exactly onto the diamond; inside aaCenterPx it
+# counts as centered (deadzone hysteresis works on true px, pre-gain).
+aaSnapPx = 4.0
+aaSnapBoost = 1.5
+aaNearPx = 25.0
+aaSpeedMin = 0.5
+aaSpeedMax = 1.0
+aaSpeedExp = 3.0
+aaCenterPx = 0.5
+
 # Game FOV conversion (SunOne-style, fixed): pixels -> mouse counts via the
 # real game FOV + sensitivity instead of the blind aaMovementAmp scalar.
 # 0 = off (legacy amp mode). Fortnite (screenshot Image/ 2026-11-03) :

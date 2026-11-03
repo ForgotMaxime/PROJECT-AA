@@ -9,7 +9,8 @@ import win32con
 
 import gameSelection
 from aim import (Kalman2D, apply_ignore_rects, fov_to_counts, headshot_offset,
-                 reject_own, select_locked, select_target, smooth_move)
+                 reject_own, select_locked, select_target, smooth_move,
+                 speed_curve)
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -182,6 +183,13 @@ def main(source=None, max_ticks=0):
     game_yaw = float(_cfg("aaYaw", 0.022))
     game_pitch = float(_cfg("aaPitch", 0.022))
     fov_speed = float(_cfg("aaFovSpeed", 0.25))
+    snap_px = float(_cfg("aaSnapPx", 4.0))
+    snap_boost = float(_cfg("aaSnapBoost", 1.5))
+    near_px = float(_cfg("aaNearPx", 25.0))
+    speed_min = float(_cfg("aaSpeedMin", 0.5))
+    speed_max = float(_cfg("aaSpeedMax", 1.0))
+    speed_exp = float(_cfg("aaSpeedExp", 3.0))
+    center_px = float(_cfg("aaCenterPx", 0.5))
     screen_w = int(_cfg("aaScreenW", 0)) or int(win_w or 0)
     screen_h = int(_cfg("aaScreenH", 0)) or int(win_h or 0)
     if game_fov_x > 0 and game_fov_y > 0:
@@ -297,6 +305,15 @@ def main(source=None, max_ticks=0):
         game_yaw = float(_cfg("aaYaw", 0.022))
         game_pitch = float(_cfg("aaPitch", 0.022))
         fov_speed = float(_cfg("aaFovSpeed", 0.25))
+        snap_px = float(_cfg("aaSnapPx", 4.0))
+        snap_boost = float(_cfg("aaSnapBoost", 1.5))
+        near_px = float(_cfg("aaNearPx", 25.0))
+        speed_min = float(_cfg("aaSpeedMin", 0.5))
+        speed_max = float(_cfg("aaSpeedMax", 1.0))
+        speed_exp = float(_cfg("aaSpeedExp", 3.0))
+        center_px = float(_cfg("aaCenterPx", 0.5))
+        fov_on = (game_fov_x > 0 and game_fov_y > 0
+                  and screen_w > 0 and screen_h > 0)
         smooth = float(_cfg("aaSmooth", 1.3))
         max_step = int(_cfg("aaMaxStep", 60))
         conf = float(_cfg("v8Conf", 0.25))
@@ -456,35 +473,49 @@ def main(source=None, max_ticks=0):
             else:
                 ax, ay = xMid, yMid
                 aim_dbg = (ax, ay)
-            # aaShiftX/Y: same shift as the capture region, so aim stays exact
-            # while the selection center moves (ex-aaRightShift).
-            # Shaping stays in px (legacy feel: deadzone/smooth/maxstep keep
-            # their px tuning); FOV conversion is the last output stage,
-            # px -> counts, so the loop can't hunt in count units.
-            raw_dx = (ax + shift_x - cWidth) * aaMovementAmp
-            raw_dy = (ay + shift_y - offset - cHeight) * aaMovementAmp
-            fov_on = (game_fov_x > 0 and game_fov_y > 0
-                      and screen_w > 0 and screen_h > 0)
-            if fov_on:
-                # FOV path has its own loop gain (loop-delay stability),
-                # shaped in the same px units before output conversion.
-                raw_dx = (ax + shift_x - cWidth) * fov_speed
-                raw_dy = (ay + shift_y - offset - cHeight) * fov_speed
-            mag = float(np.hypot(raw_dx, raw_dy))
-            # Deadzone hysteresis: engage above enter, release below exit.
-            if (engaged and mag < dz_exit) or (not engaged and mag < dz_enter):
+            # True-px error (pre-gain): engagement works on what the eye sees.
+            # Snap zone punches exactly onto the diamond (boost + smooth
+            # bypass); center zone counts as arrived; else hysteresis.
+            pdx = ax + shift_x - cWidth
+            pdy = ay + shift_y - offset - cHeight
+            dist = float(np.hypot(pdx, pdy))
+            gain = fov_speed if fov_on else aaMovementAmp
+            snap_on = snap_px > 0 and center_px < dist < snap_px
+            if dist <= center_px:
+                engaged = False
+            elif snap_on:
+                engaged = True
+            elif ((engaged and dist < dz_exit)
+                    or (not engaged and dist < dz_enter)):
                 engaged = False
             else:
                 engaged = True
-                mx, my = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
-                                     deadzone=deadzone, jitter=jitter if holding else 0)
+            if engaged:
+                if snap_on:
+                    curve = snap_boost
+                    mx, my = pdx * gain * curve, pdy * gain * curve
+                else:
+                    curve = speed_curve(dist, snap_px, near_px,
+                                        speed_min, speed_max, speed_exp)
+                    raw_dx, raw_dy = pdx * gain * curve, pdy * gain * curve
+                    if fov_on:
+                        # Float shaping: engagement already owns the deadband
+                        # (true px upstream); rounding happens once, in counts.
+                        mx, my = smooth_move(raw_dx, raw_dy, smooth=smooth,
+                                             max_step=max_step, deadzone=0,
+                                             jitter=jitter if holding else 0,
+                                             quantize=False)
+                    else:
+                        mx, my = smooth_move(raw_dx, raw_dy, smooth=smooth,
+                                             max_step=max_step, deadzone=deadzone,
+                                             jitter=jitter if holding else 0)
                 if fov_on:
                     fdx, fdy = fov_to_counts(
                         mx, my, screen_w, screen_h, game_fov_x, game_fov_y,
                         game_sens, game_yaw, game_pitch, 1.0)
                     dx, dy = int(round(fdx)), int(round(fdy))
                 else:
-                    dx, dy = mx, my
+                    dx, dy = int(round(mx)), int(round(my))
                 if holding:
                     _queue_latest(mouse_q, (dx, dy))
             last_mid = (xMid, yMid)

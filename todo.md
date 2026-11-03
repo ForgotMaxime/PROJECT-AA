@@ -28,7 +28,8 @@
 - [x] Overlay/GUI de tuning live (`gui_live.py` DearPyGui + `--gui`, 16 réglages + stats)
 - [x] Mouvements humanisés : segments/Bézier natifs MAKCU (`aaMakcuSegments`, `aaMakcuBezier`, vérifié loopback)
 - [x] Conversion FOV/sensibilité (`aaGameFovX/Y`, `aaSens/Yaw/Pitch`, `aaScreenW/H` auto-fenêtre — `aim.fov_to_counts`, miroir Rust, 9 vecteurs ; 0 = legacy amp, défaut inchangé)
-- [ ] Courbe de vitesse (exposant, snap radius/boost) + WindMouse + recoil
+- [x] Courbe de vitesse (`aim.speed_curve` continue + snap `aaSnapPx/Boost` + engagement en px vrais + `aaFovSpeed` 0.25, miroir Rust) — suivi exact du diamant simulé 100px→centré monotone
+- [ ] WindMouse + recoil (reste de l'item vitesse SunOne)
 - [ ] Modèle 2 classes (player + head) puis fine-tuné Fortnite — plafond actuel = COCO 1 classe
 - [ ] Overlay avec compensation de latence (boîtes décalées de l'âge frame)
 - [ ] YOLOv12/pose (tester `yolo12s`, `yolo11s-pose` pour visée tête directe)

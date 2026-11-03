@@ -81,7 +81,7 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 - `cpsDisplay`, `visuals`, `aaQuitKey`, `onnxChoice`
 - `aaMouseBackend` (`sendinput`/`win32`/`makcu`), `aaMakcuPort`, `aaMakcuBaud`
 - Own-character rejection (3rd person): `aaIgnoreRects` (static zones), `aaMaxBoxH` (size), Lunar-style `aaOwnReject`/`aaOwnEdgePx`/`aaOwnCorner`/`aaOwnSides` (dynamic edge/corner rule, rotation-proof) + `aaShiftX/aaShiftY` + `aaCropLeft/Right/Top/Bottom`
-- v8 aim feel (`aim.py`, `main_v8.py`): `aaSmooth` (divisor, 1=instant), `aaMaxStep` (px/tick clamp), `aaDeadzone`, `aaJitter`, `aaStickyPx` (target lock radius), `aaFovX/aaFovY` (0=off), `aaHoldKey` (default CAPS_LOCK), `aaMouseBackend`, `aaDzEnter/aaDzExit` (deadzone hysteresis), headshot offset by box-height bins + EMA, Kalman CV prediction + lead (`aaPredict`, `aaLeadT`, `aaLeadMax`, `aaGatePx`, `aaKalmanQX/QY/R`, `aaCoastMax`, `aaLockHold`, velocity `aaKalmanDamping` 0.08 + `aaKalmanWarmup` 2 + drop after `aaGateReset` 3 double-gated updates; yellow diamond in visuals)
+- v8 aim feel (`aim.py`, `main_v8.py`): `aaSmooth` (divisor, 1=instant), `aaMaxStep` (px/tick clamp), `aaDeadzone`, `aaJitter`, `aaStickyPx` (target lock radius), `aaFovX/aaFovY` (0=off), `aaHoldKey` (default CAPS_LOCK), `aaMouseBackend`, `aaDzEnter/aaDzExit` (deadzone hysteresis, true px), headshot offset by box-height bins + EMA, Kalman CV prediction + lead (`aaPredict`, `aaLeadT`, `aaLeadMax`, `aaGatePx`, `aaKalmanQX/QY/R`, `aaCoastMax`, `aaLockHold`, velocity `aaKalmanDamping` 0.08 + `aaKalmanWarmup` 2 + drop after `aaGateReset` 3 double-gated updates; yellow diamond in visuals), speed curve (`aaSnapPx/Boost`, `aaNearPx`, `aaSpeedMin/Max/Exp`, `aaCenterPx`, `aaFovSpeed`)
 
 ## Perf reference (upstream)
 

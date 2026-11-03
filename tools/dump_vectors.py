@@ -121,6 +121,31 @@ def fov_cases():
     return cases
 
 
+def speed_cases():
+    from aim import speed_curve
+    cases = []
+
+    def add(name, dist, snap=4.0, near=25.0, smin=0.5, smax=1.0, exp=3.0):
+        got = speed_curve(dist, snap, near, smin, smax, exp)
+        cases.append({"kind": "speed", "name": name,
+                      "input": {"dist_px": dist, "snap_px": snap,
+                                "near_px": near, "smin": smin,
+                                "smax": smax, "exp": exp},
+                      "expected": got})
+
+    add("at-zero", 0.0)
+    add("mid-ramp", 14.5)
+    add("at-near", 25.0)
+    add("beyond-near", 100.0)
+    add("far-corner", 200.0)
+    add("no-near-flat", 100.0, near=0.0)
+    add("no-snap", 2.0, snap=0.0)
+    add("exp-1-linear", 14.5, exp=1.0)
+    add("exp-2", 14.5, exp=2.0)
+    add("negative-dist", -5.0)
+    return cases
+
+
 def klead_cases():
     from aim import Kalman2D
     cases = []
@@ -267,7 +292,7 @@ def chain_cases():
 def main():
     vectors = (select_cases() + smooth_cases() + offset_cases()
                + klead_cases() + own_cases() + locked_cases() + chain_cases()
-               + fov_cases())
+               + fov_cases() + speed_cases())
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

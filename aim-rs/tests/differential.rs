@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, fov_to_counts, headshot_offset, reject_own, select_locked, select_target, smooth_move, Det, Kalman2D};
+use aim_rs::{aim_step, fov_to_counts, headshot_offset, reject_own, select_locked, select_target, smooth_move, speed_curve, Det, Kalman2D};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -135,6 +135,16 @@ struct FovIn {
     yaw: f64,
     pitch: f64,
     speed: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct SpeedIn {
+    dist_px: f64,
+    snap_px: f64,
+    near_px: f64,
+    smin: f64,
+    smax: f64,
+    exp: f64,
 }
 
 fn to_dets(rows: &[[f64; 6]]) -> Vec<Det> {
@@ -276,6 +286,15 @@ fn differential_vectors() {
                     inp.speed, 0.0, false,
                 );
                 assert_eq!([got.0, got.1], exp, "fov/{}", c.name);
+            }
+            "speed" => {
+                let inp: SpeedIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: f64 = serde_json::from_value(c.expected.clone()).unwrap();
+                let got = speed_curve(
+                    inp.dist_px, inp.snap_px, inp.near_px,
+                    inp.smin, inp.smax, inp.exp,
+                );
+                assert_eq!(got, exp, "speed/{}", c.name);
             }
             other => panic!("unknown vector kind: {other}"),
         }

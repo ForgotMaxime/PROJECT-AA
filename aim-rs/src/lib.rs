@@ -261,6 +261,33 @@ pub fn fov_to_counts(
     (dx, dy)
 }
 
+/// SunOne-style speed factor by true-pixel distance (continuous ramp).
+/// Mirrors `aim.speed_curve` bit-exactly: ramp starts at `snap_px` with
+/// `smin`, reaches `smax` at `near_px`; flat `smax` beyond.
+pub fn speed_curve(
+    dist_px: f64,
+    snap_px: f64,
+    near_px: f64,
+    smin: f64,
+    smax: f64,
+    exp: f64,
+) -> f64 {
+    if !dist_px.is_finite() || dist_px < 0.0 {
+        return smin;
+    }
+    let top = snap_px.max(0.0);
+    if !near_px.is_finite() || near_px <= top || dist_px >= near_px {
+        return smax;
+    }
+    let span = near_px - top;
+    let t = if span > 0.0 {
+        ((dist_px - top) / span).clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+    smin + (smax - smin) * (1.0 - (1.0 - t).powf(exp))
+}
+
 /// CPython `round()` semantics: round-half-to-even.
 fn round_half_even(x: f64) -> f64 {
     let f = x.floor();
