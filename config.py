@@ -98,6 +98,13 @@ aaGatePx = 60.0
 aaKalmanQX = 4e6
 aaKalmanQY = 16e6
 aaKalmanR = 50.0
+# Velocity damping per predict (0 = off): bounds prediction drift through
+# gated/missed updates (SunOne `kalman_velocity_damping` 0.08).
+aaKalmanDamping = 0.08
+# Warmup frames before trusting the velocity (aim raw mid meanwhile).
+aaKalmanWarmup = 2
+# Consecutive double-gated updates before dropping the filter (stale drift).
+aaGateReset = 3
 aaCoastMax = 5
 # Multi-target commitment: keep aiming at the coasted locked target this many
 # ticks before switching (needs aaPredict; 0 = switch instantly).

@@ -126,15 +126,16 @@ def klead_cases():
     cases = []
 
     def add(name, zs, dt=1 / 30.0, r=50.0, qx=4e6, qy=4e6, gate=60.0,
-            t_lead=0.05, vmax=30.0):
-        k = Kalman2D(zs[0][0], zs[0][1], qx=qx, qy=qy)
+            t_lead=0.05, vmax=30.0, damping=0.0):
+        k = Kalman2D(zs[0][0], zs[0][1], qx=qx, qy=qy, damping=damping)
         for (zx, zy) in zs[1:]:
             k.predict(dt)
             k.update(zx, zy, r, gate)
         ax, ay = k.ahead(t_lead, vmax)
         cases.append({"kind": "klead", "name": name,
                       "input": {"zs": zs, "dt": dt, "r": r, "qx": qx, "qy": qy,
-                                "gate": gate, "t_lead": t_lead, "vmax": vmax},
+                                "gate": gate, "t_lead": t_lead, "vmax": vmax,
+                                "damping": damping},
                       "expected": [ax, ay]})
 
     add("static", [[100.0, 200.0]] * 6)
@@ -144,6 +145,9 @@ def klead_cases():
     add("bounce-qy", [[500.0, 500.0 - 20 * i] for i in range(6)], qy=16e6)
     add("stop", [[100.0 + 10 * i, 200.0] for i in range(4)] + [[140.0, 200.0]] * 3)
     add("outlier", [[100.0 + 10 * i, 200.0] for i in range(3)] + [[600.0, 200.0]] + [[130.0, 200.0]] * 2)
+    add("damped-vel", [[100.0 + 10 * i, 200.0] for i in range(6)], damping=0.08)
+    add("damped-stop", [[100.0 + 10 * i, 200.0] for i in range(4)] + [[140.0, 200.0]] * 3,
+        damping=0.08)
     return cases
 
 

@@ -368,17 +368,19 @@ pub struct KalmanCV {
     p01: f64,
     p11: f64,
     q: f64,
+    damping: f64,
 }
 
 impl KalmanCV {
-    pub fn new(x0: f64, p_pos: f64, p_vel: f64, q: f64) -> Self {
-        Self { x: x0, v: 0.0, p00: p_pos, p01: 0.0, p11: p_vel, q }
+    pub fn new(x0: f64, p_pos: f64, p_vel: f64, q: f64, damping: f64) -> Self {
+        Self { x: x0, v: 0.0, p00: p_pos, p01: 0.0, p11: p_vel, q, damping }
     }
 
     pub fn predict(&mut self, dt: f64) {
         let dt2 = dt * dt;
         let dt3 = dt2 * dt;
         let dt4 = dt2 * dt2;
+        self.v = self.v * (1.0 - self.damping);
         self.x = self.x + self.v * dt;
         let np00 =
             self.p00 + dt * (self.p01 + self.p01) + dt2 * self.p11 + self.q * dt4 / 4.0;
@@ -421,10 +423,10 @@ pub struct Kalman2D {
 }
 
 impl Kalman2D {
-    pub fn new(x0: f64, y0: f64, p_pos: f64, p_vel: f64, qx: f64, qy: f64) -> Self {
+    pub fn new(x0: f64, y0: f64, p_pos: f64, p_vel: f64, qx: f64, qy: f64, damping: f64) -> Self {
         Self {
-            kx: KalmanCV::new(x0, p_pos, p_vel, qx),
-            ky: KalmanCV::new(y0, p_pos, p_vel, qy),
+            kx: KalmanCV::new(x0, p_pos, p_vel, qx, damping),
+            ky: KalmanCV::new(y0, p_pos, p_vel, qy, damping),
         }
     }
 

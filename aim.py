@@ -230,21 +230,25 @@ class KalmanCV:
 
     No numpy inside: op order is written to match the aim-rs port bit-exactly.
     State [x, v], P symmetric [[p00, p01], [p01, p11]].
+    Damping (0 = off): velocity decay per predict, bounds drift through
+    gated/missed updates (SunOne `kalman_velocity_damping`).
     """
 
-    def __init__(self, x0=0.0, p_pos=25.0, p_vel=900.0, q=4e6):
+    def __init__(self, x0=0.0, p_pos=25.0, p_vel=900.0, q=4e6, damping=0.0):
         self.x = float(x0)
         self.v = 0.0
         self.p00 = float(p_pos)
         self.p01 = 0.0
         self.p11 = float(p_vel)
         self.q = float(q)
+        self.damping = float(damping)
 
     def predict(self, dt):
         dt = float(dt)
         dt2 = dt * dt
         dt3 = dt2 * dt
         dt4 = dt2 * dt2
+        self.v = self.v * (1.0 - self.damping)
         self.x = self.x + self.v * dt
         np00 = self.p00 + dt * (self.p01 + self.p01) + dt2 * self.p11 + self.q * dt4 / 4.0
         np01 = self.p01 + dt * self.p11 + self.q * dt3 / 2.0
@@ -280,9 +284,10 @@ class Kalman2D:
     while keeping horizontal steady. Mirrored by the aim-rs port.
     """
 
-    def __init__(self, x0=0.0, y0=0.0, p_pos=25.0, p_vel=900.0, qx=4e6, qy=4e6):
-        self.kx = KalmanCV(x0, p_pos, p_vel, qx)
-        self.ky = KalmanCV(y0, p_pos, p_vel, qy)
+    def __init__(self, x0=0.0, y0=0.0, p_pos=25.0, p_vel=900.0, qx=4e6, qy=4e6,
+                 damping=0.0):
+        self.kx = KalmanCV(x0, p_pos, p_vel, qx, damping)
+        self.ky = KalmanCV(y0, p_pos, p_vel, qy, damping)
 
     def predict(self, dt):
         self.kx.predict(dt)
