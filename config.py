@@ -20,6 +20,11 @@ aaQuitKey = "P"
 # If you want to main slightly upwards towards the head
 headshot_mode = True
 
+# Direct aim-height override: fraction of box height above the midpoint.
+# 0.38 ~= head, 0.2 ~= chest, 0.0 = exact box center. None = use headshot_mode.
+# (headshot_mode below only applies when this is None.)
+aaAimOffset = 0.0
+
 # Displays the Corrections per second in the terminal
 cpsDisplay = True
 

@@ -76,7 +76,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - `useMask`, `maskSide` (`left`/`right`), `maskWidth`, `maskHeight`
 - `aaMovementAmp` (default 0.4, try 0.5-2): mouse amplification
 - `confidence` (default 0.4)
-- `headshot_mode` (default True: 0.38 box height offset, else 0.2)
+- `headshot_mode` (default True: 0.38 box height offset, else 0.2), or direct `aaAimOffset` fraction (0.0 = exact box center, takes precedence; `None` = use `headshot_mode`)
 - `centerOfScreen` (default True): pick closest-to-center target
 - `cpsDisplay`, `visuals`, `aaQuitKey`, `onnxChoice`
 - `aaMouseBackend` (`sendinput`/`win32`/`makcu`), `aaMakcuPort`, `aaMakcuBaud`

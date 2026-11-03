@@ -108,6 +108,7 @@ def main(source=None, max_ticks=0):
     aaMovementAmp = float(_cfg("aaMovementAmp", 0.4))
     aaQuitKey = str(_cfg("aaQuitKey", "Q"))
     headshot_mode = bool(_cfg("headshot_mode", True))
+    aim_offset_cfg = _cfg("aaAimOffset", None)
     cpsDisplay = bool(_cfg("cpsDisplay", True))
     visuals = bool(_cfg("visuals", False))
     centerOfScreen = bool(_cfg("centerOfScreen", True))
@@ -326,7 +327,10 @@ def main(source=None, max_ticks=0):
         if tgt is not None:
             xMid, yMid, box_h = tgt
             ema_h = box_h if ema_h is None else 0.3 * box_h + 0.7 * ema_h
-            offset = headshot_offset(ema_h, headshot_mode)
+            if aim_offset_cfg is None:
+                offset = headshot_offset(ema_h, headshot_mode)
+            else:
+                offset = ema_h * float(aim_offset_cfg)
             if aa_predict and not coasted:
                 key = locked_id if use_tracker else True
                 if kf is None or kf_id != key:
