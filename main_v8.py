@@ -456,24 +456,26 @@ def main(source=None, max_ticks=0):
                 aim_dbg = (ax, ay)
             # aaShiftX/Y: same shift as the capture region, so aim stays exact
             # while the selection center moves (ex-aaRightShift).
-            px = ax + shift_x - cWidth
-            py = ay + shift_y - offset - cHeight
-            if game_fov_x > 0 and game_fov_y > 0 and screen_w > 0 and screen_h > 0:
-                # Physical mode: px -> angle -> counts, amp trims as speed.
-                raw_dx, raw_dy = fov_to_counts(
-                    px, py, screen_w, screen_h, game_fov_x, game_fov_y,
-                    game_sens, game_yaw, game_pitch, aaMovementAmp)
-            else:
-                raw_dx = px * aaMovementAmp
-                raw_dy = py * aaMovementAmp
+            # Shaping stays in px (legacy feel: deadzone/smooth/maxstep keep
+            # their px tuning); FOV conversion is the last output stage,
+            # px -> counts, so the loop can't hunt in count units.
+            raw_dx = (ax + shift_x - cWidth) * aaMovementAmp
+            raw_dy = (ay + shift_y - offset - cHeight) * aaMovementAmp
             mag = float(np.hypot(raw_dx, raw_dy))
             # Deadzone hysteresis: engage above enter, release below exit.
             if (engaged and mag < dz_exit) or (not engaged and mag < dz_enter):
                 engaged = False
             else:
                 engaged = True
-                dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
+                mx, my = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
                                      deadzone=deadzone, jitter=jitter if holding else 0)
+                if game_fov_x > 0 and game_fov_y > 0 and screen_w > 0 and screen_h > 0:
+                    fdx, fdy = fov_to_counts(
+                        mx, my, screen_w, screen_h, game_fov_x, game_fov_y,
+                        game_sens, game_yaw, game_pitch, 1.0)
+                    dx, dy = int(round(fdx)), int(round(fdy))
+                else:
+                    dx, dy = mx, my
                 if holding:
                     _queue_latest(mouse_q, (dx, dy))
             last_mid = (xMid, yMid)

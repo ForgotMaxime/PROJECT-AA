@@ -74,7 +74,7 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 - `screenShotHeight/Width` (default 320): capture box around screen center
 - `useMask`, `maskSide` (`left`/`right`), `maskWidth`, `maskHeight`
 - `aaMovementAmp` (default 0.7): legacy scalar px→counts; trims FOV mode as speed when enabled
-- `aaGameFovX/Y` (Fortnite: 80/50.5) : conversion physique px→counts (`aim.fov_to_counts`, SunOne-style mais corrigée fenêtre réelle, pas capture) ; `aaSens` en % natifs du jeu (axe X/Y, ici 2.1), `aaYaw`/`aaPitch` Fortnite 0.005555, `aaScreenW/H` (0 = auto fenêtre). 0 = legacy amp. GUI-live : sliders fov x/y + sens.
+- `aaGameFovX/Y` (Fortnite: 80/50.5) : conversion physique px→counts **en dernier étage** (`aim.fov_to_counts`, SunOne-style mais corrigée fenêtre réelle, pas capture — deadzone/smooth/maxstep restent en px) ; `aaSens` en % natifs du jeu (axe X/Y, ici 2.1), `aaYaw`/`aaPitch` Fortnite 0.005555, `aaScreenW/H` (0 = auto fenêtre). 0 = legacy amp. GUI-live : sliders fov x/y + sens.
 - `confidence` (default 0.4)
 - `headshot_mode` (default True: 0.38 box height offset, else 0.2), or direct `aaAimOffset` fraction (0.0 = exact box center, takes precedence; `None` = use `headshot_mode`)
 - `centerOfScreen` (default True): pick closest-to-center target
