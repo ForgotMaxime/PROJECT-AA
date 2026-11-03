@@ -13,8 +13,11 @@ import numpy as np
 
 
 class V8Detector:
-    def __init__(self, model="yolo11s.pt", imgsz=320, conf=0.25, iou=0.5,
+    def __init__(self, model="yolo11s.onnx", imgsz=320, conf=0.25, iou=0.5,
                  device=0, tracker=None):
+        # ORDER MATTERS: torch (CUDA12) must load BEFORE the CUDA13/cuDNN9
+        # pip DLLs are preloaded for ORT, or torch fails to import (WinError 127).
+        import torch  # noqa: F401
         from ultralytics import YOLO
         self.imgsz = int(imgsz)
         self.conf = float(conf)
@@ -30,7 +33,6 @@ class V8Detector:
             except Exception:
                 pass
         try:
-            import torch
             torch.backends.cudnn.benchmark = True
         except Exception:
             pass
