@@ -33,7 +33,13 @@ def main():
         title_filter = args[args.index("--window") + 1]
     shift_x = int(_cfg("aaShiftX", 0))
     shift_y = int(_cfg("aaShiftY", 0))
-    selection = gameSelection.gameSelection(title_filter, shift_x, shift_y)
+    crop_left = int(_cfg("aaCropLeft", 0))
+    crop_right = int(_cfg("aaCropRight", 0))
+    crop_top = int(_cfg("aaCropTop", 0))
+    crop_bottom = int(_cfg("aaCropBottom", 0))
+    selection = gameSelection.gameSelection(
+        title_filter, shift_x, shift_y,
+        crop_left, crop_right, crop_top, crop_bottom)
     if selection is None:
         print("Game selection failed, exiting.")
         return

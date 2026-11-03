@@ -17,6 +17,7 @@ import pygetwindow
 
 import config
 from aim import apply_ignore_rects
+from gameSelection import capture_region
 from inference_v8 import V8Detector
 
 
@@ -36,10 +37,14 @@ def main():
     print(f"Window: {win.title!r} at ({win.left},{win.top}) size {win.width}x{win.height}")
 
     sw, sh = config.screenShotWidth, config.screenShotHeight
-    left = ((win.left + win.right) // 2) - (sw // 2)
-    top = win.top + (win.height - sh) // 2
-    region = (left, top, left + sw, top + sh)
-    cw, ch = sw // 2, sh // 2
+    region, cw, ch = capture_region(
+        win, sw, sh,
+        int(getattr(config, "aaShiftX", 0)), int(getattr(config, "aaShiftY", 0)),
+        int(getattr(config, "aaCropLeft", 0)), int(getattr(config, "aaCropRight", 0)),
+        int(getattr(config, "aaCropTop", 0)), int(getattr(config, "aaCropBottom", 0)))
+    if region is None:
+        print("Capture region too small, exiting.")
+        return
     print(f"Region: {region} center=({cw},{ch})")
 
     import bettercam

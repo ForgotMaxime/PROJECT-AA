@@ -65,7 +65,13 @@ aaHoldKey = 0x14
 
 # Pixel rects (x, y, w, h) blacked out before inference: own 3rd-person model, HUD.
 # Tune with tools/diag_capture.py frames. [] = off.
-aaIgnoreRects = [(60, 110, 60, 120)]
+aaIgnoreRects = []
+
+# Crop the capture box edges (px): trims HUD/edge junk instead of blacking out.
+aaCropLeft = 20
+aaCropRight = 40
+aaCropTop = 0
+aaCropBottom = 0
 
 # Ignore detections taller than this (own close-up body/gun). 0 = off.
 aaMaxBoxH = 160
