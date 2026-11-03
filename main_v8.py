@@ -47,7 +47,8 @@ def _capture_loop(camera, frame_q, stop_ev):
             pass
 
 
-def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key, stats, stats_lock):
+def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key, stats,
+                stats_lock, segments=1, bezier=None):
     """Send latest queued move; drop stale so the cursor never lags frames."""
     while not stop_ev.is_set():
         try:
@@ -58,7 +59,8 @@ def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key, stats, stats_lo
             break
         try:
             if win32api.GetKeyState(hold_key):
-                move_relative(dx, dy, backend=backend, port=port, baud=baud)
+                move_relative(dx, dy, backend=backend, port=port, baud=baud,
+                              segments=segments, bezier=bezier)
                 with stats_lock:
                     stats["mouse"] += 1
         except Exception:
@@ -128,6 +130,9 @@ def main(source=None, max_ticks=0):
     mouse_backend = _cfg("aaMouseBackend", "sendinput")
     makcu_port = _cfg("aaMakcuPort", "COM3")
     makcu_baud = int(_cfg("aaMakcuBaud", 115200))
+    makcu_segments = int(_cfg("aaMakcuSegments", 1))
+    _bez = _cfg("aaMakcuBezier", None)
+    makcu_bezier = tuple(int(v) for v in _bez) if _bez else None
     mono_target = bool(_cfg("aaMonoTarget", True))
     use_tracker = bool(_cfg("v8Track", True))
     tracker_yaml = _cfg("v8Tracker", "trackers/bytetrack-aim.yaml")
@@ -210,7 +215,8 @@ def main(source=None, max_ticks=0):
     mouse_t = threading.Thread(target=_mouse_loop,
                                args=(mouse_q, stop_ev, mouse_backend,
                                      makcu_port, makcu_baud, hold_key,
-                                     stats, stats_lock),
+                                     stats, stats_lock,
+                                     makcu_segments, makcu_bezier),
                                daemon=True, name="aa-mouse")
     cap_t.start()
     mouse_t.start()

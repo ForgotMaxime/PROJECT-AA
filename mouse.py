@@ -80,24 +80,39 @@ def close_makcu(port=None):
             pass
 
 
-def move_makcu(dx, dy, port="COM3", baud=115200):
-    """Relative move via MAKCU (`km.move(dx,dy)\\r`). Zero moves are skipped."""
+def move_makcu(dx, dy, port="COM3", baud=115200, segments=1, bezier=None):
+    """Relative move via MAKCU (`km.move(dx,dy[seg,cx1,cy1,cx2,cy2])\\r`).
+
+    Zero moves are skipped. segments=1 with no bezier sends the legacy
+    single-segment command (byte-identical). bezier=(cx1,cy1,cx2,cy2) adds
+    a cubic curve, paced device-side over `segments` USB reports.
+    """
     dx, dy = int(dx), int(dy)
     if dx == 0 and dy == 0:
         return
+    seg = max(1, int(segments or 1))
+    if bezier is not None and seg > 1:
+        cx1, cy1, cx2, cy2 = (int(v) for v in bezier)
+        cmd = f"km.move({dx},{dy},{seg},{cx1},{cy1},{cx2},{cy2})\r"
+    elif seg > 1:
+        cmd = f"km.move({dx},{dy},{seg})\r"
+    else:
+        cmd = f"km.move({dx},{dy})\r"
     ser = makcu_connect(port, baud)
     try:
-        ser.write(f"km.move({dx},{dy})\r".encode("ascii"))
+        ser.write(cmd.encode("ascii"))
     except Exception as e:
         raise OSError(f"MAKCU: write failed on {port} ({e})") from e
 
 
-def move_relative(dx, dy, backend="sendinput", port=None, baud=None):
+def move_relative(dx, dy, backend="sendinput", port=None, baud=None,
+                  segments=1, bezier=None):
     b = str(backend).lower()
     if b == "sendinput":
         return move_sendinput(dx, dy)
     if b in ("win32", "legacy"):
         return move_win32(dx, dy)
     if b == "makcu":
-        return move_makcu(dx, dy, port=port or "COM3", baud=baud or 115200)
+        return move_makcu(dx, dy, port=port or "COM3", baud=baud or 115200,
+                          segments=segments, bezier=bezier)
     raise ValueError(f'unknown mouse backend: {backend!r} (use "sendinput", "win32" or "makcu")')

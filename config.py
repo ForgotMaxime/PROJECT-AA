@@ -62,6 +62,10 @@ aaMouseBackend = "makcu"
 # MAKCU serial bridge (only used when aaMouseBackend = "makcu")
 aaMakcuPort = "COM4"
 aaMakcuBaud = 4000000
+# Humanized moves: split each move over N USB reports (1 = legacy single
+# command), optional cubic Bezier (cx1, cy1, cx2, cy2) or None.
+aaMakcuSegments = 1
+aaMakcuBezier = None
 
 # Aim feel (main_v8.py): smooth divisor, per-tick clamp, deadzone, jitter
 aaSmooth = 1.3
