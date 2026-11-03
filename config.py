@@ -9,7 +9,7 @@ maskWidth = 80
 maskHeight = 200
 
 # Autoaim mouse movement amplifier
-aaMovementAmp = .4
+aaMovementAmp = .7
 
 # Person Class Confidence
 confidence = 0.4
@@ -50,8 +50,8 @@ aaMakcuPort = "COM3"
 aaMakcuBaud = 115200
 
 # Aim feel (main_v8.py): smooth divisor, per-tick clamp, deadzone, jitter
-aaSmooth = 2.0
-aaMaxStep = 40
+aaSmooth = 1.3
+aaMaxStep = 60
 aaDeadzone = 1
 aaJitter = 0
 
