@@ -335,8 +335,11 @@ pub struct Kalman2D {
 }
 
 impl Kalman2D {
-    pub fn new(x0: f64, y0: f64, p_pos: f64, p_vel: f64, q: f64) -> Self {
-        Self { kx: KalmanCV::new(x0, p_pos, p_vel, q), ky: KalmanCV::new(y0, p_pos, p_vel, q) }
+    pub fn new(x0: f64, y0: f64, p_pos: f64, p_vel: f64, qx: f64, qy: f64) -> Self {
+        Self {
+            kx: KalmanCV::new(x0, p_pos, p_vel, qx),
+            ky: KalmanCV::new(y0, p_pos, p_vel, qy),
+        }
     }
 
     pub fn predict(&mut self, dt: f64) {

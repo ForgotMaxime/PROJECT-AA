@@ -92,9 +92,11 @@ def main():
     lead_t = float(_cfg("aaLeadT", 0.05))
     lead_max = float(_cfg("aaLeadMax", 30.0))
     gate_px = float(_cfg("aaGatePx", 60.0))
-    kalman_q = float(_cfg("aaKalmanQ", 4e6))
+    kalman_qx = float(_cfg("aaKalmanQX", 4e6))
+    kalman_qy = float(_cfg("aaKalmanQY", 16e6))
     kalman_r = float(_cfg("aaKalmanR", 50.0))
     coast_max = int(_cfg("aaCoastMax", 5))
+    lock_hold = int(_cfg("aaLockHold", 8))
     lead_vmax = (lead_max / lead_t) if lead_t > 0 else 0.0
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou,
@@ -131,6 +133,11 @@ def main():
         if ignore_rects:
             apply_ignore_rects(frame, ignore_rects)
 
+        now = time.perf_counter()
+        dt = min(0.2, max(0.005, now - last_t)) if last_t is not None else 1 / 30.0
+        last_t = now
+        coasted = False
+
         t0 = time.perf_counter()
         if tracker_ok:
             try:
@@ -155,6 +162,15 @@ def main():
                         kf = None
                         kf_id = None
                     tgt = None
+                elif (locked_id is not None and new_lock != locked_id
+                        and lock_misses < lock_hold and kf is not None):
+                    # Locked target briefly unseen: hold the lock and coast-aim
+                    # at its prediction instead of flicking to another target.
+                    lock_misses += 1
+                    kf.predict(dt)
+                    coasted = True
+                    ax, ay = kf.ahead(lead_t, lead_vmax)
+                    tgt = (ax, ay, ema_h if ema_h is not None else t4[2])
                 else:
                     lock_misses = 0
                     locked_id = new_lock
@@ -173,19 +189,16 @@ def main():
                                 max_box_h=max_box_h)
         infer_ms += ((time.perf_counter() - t0) * 1000.0 - infer_ms) * 0.1
 
-        now = time.perf_counter()
-        dt = min(0.2, max(0.005, now - last_t)) if last_t is not None else 1 / 30.0
-        last_t = now
         aim_dbg = None
 
         if tgt is not None:
             xMid, yMid, box_h = tgt
             ema_h = box_h if ema_h is None else 0.3 * box_h + 0.7 * ema_h
             offset = headshot_offset(ema_h, headshot_mode)
-            if aa_predict:
+            if aa_predict and not coasted:
                 key = locked_id if use_tracker else True
                 if kf is None or kf_id != key:
-                    kf = Kalman2D(xMid, yMid, q=kalman_q)
+                    kf = Kalman2D(xMid, yMid, qx=kalman_qx, qy=kalman_qy)
                     kf_id = key
                     kf_coast = 0
                 else:
@@ -196,6 +209,7 @@ def main():
                 aim_dbg = (ax, ay)
             else:
                 ax, ay = xMid, yMid
+                aim_dbg = (ax, ay)
             # aaShiftX/Y: same shift as the capture region, so aim stays exact
             # while the selection center moves (ex-aaRightShift).
             raw_dx = (ax + shift_x - cWidth) * aaMovementAmp

@@ -70,9 +70,13 @@ aaPredict = True
 aaLeadT = 0.05
 aaLeadMax = 30.0
 aaGatePx = 60.0
-aaKalmanQ = 4e6
+aaKalmanQX = 4e6
+aaKalmanQY = 16e6
 aaKalmanR = 50.0
 aaCoastMax = 5
+# Multi-target commitment: keep aiming at the coasted locked target this many
+# ticks before switching (needs aaPredict; 0 = switch instantly).
+aaLockHold = 8
 
 # Target lock: keep last target within this radius, FOV box half-extents (0 = off)
 aaStickyPx = 80

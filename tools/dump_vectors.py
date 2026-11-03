@@ -98,15 +98,15 @@ def klead_cases():
     from aim import Kalman2D
     cases = []
 
-    def add(name, zs, dt=1 / 30.0, r=50.0, q=4e6, gate=60.0,
+    def add(name, zs, dt=1 / 30.0, r=50.0, qx=4e6, qy=4e6, gate=60.0,
             t_lead=0.05, vmax=30.0):
-        k = Kalman2D(zs[0][0], zs[0][1], q=q)
+        k = Kalman2D(zs[0][0], zs[0][1], qx=qx, qy=qy)
         for (zx, zy) in zs[1:]:
             k.predict(dt)
             k.update(zx, zy, r, gate)
         ax, ay = k.ahead(t_lead, vmax)
         cases.append({"kind": "klead", "name": name,
-                      "input": {"zs": zs, "dt": dt, "r": r, "q": q,
+                      "input": {"zs": zs, "dt": dt, "r": r, "qx": qx, "qy": qy,
                                 "gate": gate, "t_lead": t_lead, "vmax": vmax},
                       "expected": [ax, ay]})
 
@@ -114,6 +114,7 @@ def klead_cases():
     add("const-vel-x", [[100.0 + 10 * i, 200.0] for i in range(6)])
     add("const-vel-diag", [[100.0 + 8 * i, 200.0 - 6 * i] for i in range(6)])
     add("lead-unclamped", [[100.0 + 10 * i, 200.0] for i in range(6)], vmax=1000.0)
+    add("bounce-qy", [[500.0, 500.0 - 20 * i] for i in range(6)], qy=16e6)
     add("stop", [[100.0 + 10 * i, 200.0] for i in range(4)] + [[140.0, 200.0]] * 3)
     add("outlier", [[100.0 + 10 * i, 200.0] for i in range(3)] + [[600.0, 200.0]] + [[130.0, 200.0]] * 2)
     return cases

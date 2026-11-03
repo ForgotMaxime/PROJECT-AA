@@ -202,11 +202,15 @@ class KalmanCV:
 
 
 class Kalman2D:
-    """Two independent KalmanCV axes. Mirrored by the aim-rs port."""
+    """Two independent KalmanCV axes, with separate process noise.
 
-    def __init__(self, x0=0.0, y0=0.0, p_pos=25.0, p_vel=900.0, q=4e6):
-        self.kx = KalmanCV(x0, p_pos, p_vel, q)
-        self.ky = KalmanCV(y0, p_pos, p_vel, q)
+    qy > qx lets vertical velocity adapt in a few ticks (bounces, jumps)
+    while keeping horizontal steady. Mirrored by the aim-rs port.
+    """
+
+    def __init__(self, x0=0.0, y0=0.0, p_pos=25.0, p_vel=900.0, qx=4e6, qy=4e6):
+        self.kx = KalmanCV(x0, p_pos, p_vel, qx)
+        self.ky = KalmanCV(y0, p_pos, p_vel, qy)
 
     def predict(self, dt):
         self.kx.predict(dt)

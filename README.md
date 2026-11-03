@@ -57,7 +57,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - Model auto-downloads `yolov8s.pt` on first run (git-ignored, 21MB).
 - ONNX: `python export_v8.py yolov8s.pt 320 onnx` -> `yolov8s.onnx` (git-ignored, 43MB), then set `config.py:v8Model = "yolov8s.onnx"`.
 - TensorRT: `python export_v8.py yolov8s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "yolov8s.engine"`.
-- Tracking: `v8Track` (ByteTrack IDs via `trackers/bytetrack-aim.yaml`, `persist=True`) + `select_locked` ID lock in `aim.py` (`aaTrackMinConf`, `aaTrackBuffer`); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer.
+- Tracking: `v8Track` (ByteTrack IDs via `trackers/bytetrack-aim.yaml`, `persist=True`) + `select_locked` ID lock in `aim.py` (`aaTrackMinConf`, `aaTrackBuffer`); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer. `aaLockHold` ticks of coast-aim on the locked prediction before switching targets.
 - Config (`config.py`): `v8Model` (`yolo11s.pt`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`sendinput` default, `win32` legacy).
 - Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
 - MAKCU: set `config.py:aaMouseBackend = "makcu"`, `aaMakcuPort` (e.g. `"COM3"`, below COM10), `aaMakcuBaud` (115200 default, or 4000000 after toggling the device: press its button 4x in 2s). Sends `km.move(dx,dy)\r` per tick, zero moves skipped, handle closed on exit. Needs CH343 driver + AIO/test tool closed. 2PC setups run the bot on the second PC.
@@ -76,7 +76,7 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 - `cpsDisplay`, `visuals`, `aaQuitKey`, `onnxChoice`
 - `aaMouseBackend` (`sendinput`/`win32`/`makcu`), `aaMakcuPort`, `aaMakcuBaud`
 - Own-character rejection (3rd person): `aaIgnoreRects` (pixel zones blacked out, tune via `tools/diag_capture.py`) + `aaMaxBoxH` (ignore boxes taller than this, 0=off) + `aaShiftX/aaShiftY` (ex-`aaRightShift` 2022: shifts capture region and aim point together, aim stays exact while selection center moves away from your shoulder model) + `aaCropLeft/Right/Top/Bottom` (trims capture edges)
-- v8 aim feel (`aim.py`, `main_v8.py`): `aaSmooth` (divisor, 1=instant), `aaMaxStep` (px/tick clamp), `aaDeadzone`, `aaJitter`, `aaStickyPx` (target lock radius), `aaFovX/aaFovY` (0=off), `aaHoldKey` (default CAPS_LOCK), `aaMouseBackend`, `aaDzEnter/aaDzExit` (deadzone hysteresis), headshot offset by box-height bins + EMA, Kalman CV prediction + lead (`aaPredict`, `aaLeadT`, `aaLeadMax`, `aaGatePx`, `aaKalmanQ/R`, `aaCoastMax`; yellow diamond in visuals)
+- v8 aim feel (`aim.py`, `main_v8.py`): `aaSmooth` (divisor, 1=instant), `aaMaxStep` (px/tick clamp), `aaDeadzone`, `aaJitter`, `aaStickyPx` (target lock radius), `aaFovX/aaFovY` (0=off), `aaHoldKey` (default CAPS_LOCK), `aaMouseBackend`, `aaDzEnter/aaDzExit` (deadzone hysteresis), headshot offset by box-height bins + EMA, Kalman CV prediction + lead (`aaPredict`, `aaLeadT`, `aaLeadMax`, `aaGatePx`, `aaKalmanQX/QY/R`, `aaCoastMax`, `aaLockHold`; yellow diamond in visuals)
 
 ## Perf reference (upstream)
 

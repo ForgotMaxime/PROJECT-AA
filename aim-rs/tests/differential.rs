@@ -50,7 +50,8 @@ struct KleadIn {
     zs: Vec<[f64; 2]>,
     dt: f64,
     r: f64,
-    q: f64,
+    qx: f64,
+    qy: f64,
     gate: f64,
     t_lead: f64,
     vmax: f64,
@@ -158,7 +159,7 @@ fn differential_vectors() {
             "klead" => {
                 let inp: KleadIn = serde_json::from_value(c.input.clone()).unwrap();
                 let exp: [f64; 2] = serde_json::from_value(c.expected.clone()).unwrap();
-                let mut k = Kalman2D::new(inp.zs[0][0], inp.zs[0][1], 25.0, 900.0, inp.q);
+                let mut k = Kalman2D::new(inp.zs[0][0], inp.zs[0][1], 25.0, 900.0, inp.qx, inp.qy);
                 for z in inp.zs.iter().skip(1) {
                     k.predict(inp.dt);
                     k.update(z[0], z[1], inp.r, inp.gate);
