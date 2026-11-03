@@ -18,7 +18,7 @@
 - [x] Threading capture / inférence / souris (files drop-stale) — smoke test `tools/smoke_threads.py` vert
 - [x] ORT CUDA (`onnxruntime-gpu[cuda,cudnn]` + `preload_dlls`, provider vérifié) — `yolo11s.onnx` ~18ms vs `.pt` ~27ms
 - [x] Engine TensorRT FP16 320 (`yolo11s.engine`, TRT 11.4 + modelopt chain) — ~8ms end-to-end, défaut actuel
-- [ ] Mesure specialistion : ID switches/min en crossing, RMSE strafe vs saut (frames enregistrées)
+- [x] Mesure : `tools/diag_capture.py --track` (raws + track.jsonl) + `tools/measure_tracks.py` (switches/jitter/rate, rejouable par tracker) — A/B bytetrack vs ocsort outillé, verdict sur vraies séquences en attente
 - [ ] OC-SORT (`inertia` 0.3) si les sauts dominent l'erreur restante
 - [ ] Filtre 1€ sur la mesure si jitter résiduel à l'arrêt (seuil : std > 2px)
 - [ ] ReID BoT-SORT seulement si swaps en multi-cible dominent

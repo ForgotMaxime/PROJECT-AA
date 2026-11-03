@@ -26,6 +26,9 @@ def main():
     ap.add_argument("--window", default="Fortnite")
     ap.add_argument("--n", type=int, default=10)
     ap.add_argument("--out", default="diag")
+    ap.add_argument("--track", action="store_true",
+                    help="use ByteTrack (records ids, enables switch metrics)")
+    ap.add_argument("--tracker", default="trackers/bytetrack-aim.yaml")
     args = ap.parse_args()
 
     needle = args.window.lower()
@@ -56,15 +59,25 @@ def main():
     time.sleep(1.0)
 
     det = V8Detector(model=config.v8Model, imgsz=config.v8Imgsz,
-                     conf=config.v8Conf, iou=config.v8Iou, device=config.v8Device)
+                     conf=config.v8Conf, iou=config.v8Iou, device=config.v8Device,
+                     tracker=args.tracker if args.track else None)
     outdir = Path(args.out)
     outdir.mkdir(exist_ok=True)
+    import json as _json
+    jl = open(outdir / "track.jsonl", "w", encoding="utf-8")
+    t_start = time.perf_counter()
     for i in range(args.n):
         frame = np.array(cam.get_latest_frame())
         if frame.shape[2] == 4:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
         apply_ignore_rects(frame, getattr(config, "aaIgnoreRects", []))
-        dets = det.infer(frame)
+        if args.track:
+            tr = det.track(frame)
+            dets, ids = tr[:, :6], [int(v) for v in tr[:, 6].tolist()]
+        else:
+            dets = det.infer(frame)
+            ids = [-1] * len(dets)
+        cv2.imwrite(str(outdir / f"frame_raw_{i}.png"), frame)
         fh, fw = frame.shape[:2]
         keep = reject_own(
             dets, fw, fh, float(getattr(config, "aaOwnEdgePx", 15)),
@@ -76,6 +89,8 @@ def main():
         for (rx, ry, rw, rh) in getattr(config, "aaIgnoreRects", []) or []:
             cv2.rectangle(view, (rx, ry), (rx + rw, ry + rh), (255, 0, 255), 1)
         print(f"--- frame {i}: {dets.shape[0]} dets ({sum(keep)} kept) ---")
+        jl.write(_json.dumps({"t": round(time.perf_counter() - t_start, 3),
+                              "dets": dets.tolist(), "ids": ids}) + "\n")
         for (x1, y1, x2, y2, c, cls), ok in zip(dets.tolist(), keep):
             xm, ym = (x1 + x2) / 2, (y1 + y2) / 2
             h = y2 - y1
@@ -91,6 +106,7 @@ def main():
         cv2.imwrite(str(p), view)
         print(f"  saved {p}")
         time.sleep(0.5)
+    jl.close()
     cam.stop()
 
 
