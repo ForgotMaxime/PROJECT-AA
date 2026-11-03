@@ -25,6 +25,5 @@
 - [ ] Test live MAKCU (backend codé + vérifié loopback, jamais testé sur hardware)
 
 ## Écarté
-- [ ] ~~Fine-tune dummies holographes~~ — hors-scope (décision)
 - [ ] ~~SAHI temps réel, RT-DETR, `best.onnx` YOLOv5~~ — trop lent / mort
 - [ ] ~~INT8, `torch.compile`~~ — avant P2, gains faibles vs risque
