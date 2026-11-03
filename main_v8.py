@@ -8,8 +8,8 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import (Kalman2D, apply_ignore_rects, headshot_offset, select_locked,
-                 select_target, smooth_move)
+from aim import (Kalman2D, apply_ignore_rects, headshot_offset, reject_own,
+                 select_locked, select_target, smooth_move)
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -143,6 +143,10 @@ def main(source=None, max_ticks=0):
     fov = (fovX, fovY) if fovX and fovY else None
     ignore_rects = _cfg("aaIgnoreRects", [])
     max_box_h = float(_cfg("aaMaxBoxH", 0))
+    own_reject = bool(_cfg("aaOwnReject", True))
+    own_edge = float(_cfg("aaOwnEdgePx", 15))
+    own_corner = bool(_cfg("aaOwnCorner", True))
+    own_sides = tuple(_cfg("aaOwnSides", ["left"]))
     dz_enter = float(_cfg("aaDzEnter", 2.5))
     dz_exit = float(_cfg("aaDzExit", 1.0))
     aa_predict = bool(_cfg("aaPredict", True))
@@ -260,6 +264,10 @@ def main(source=None, max_ticks=0):
                 tracker_ok = False
                 tr = None
             if tracker_ok and tr is not None:
+                if own_reject and len(tr):
+                    fw, fh = frame.shape[1], frame.shape[0]
+                    tr = tr[reject_own(tr[:, :6], fw, fh, own_edge,
+                                       own_corner, own_sides)]
                 dets = tr[:, :6]
                 ids = [int(v) for v in tr[:, 6].tolist()]
                 t4, new_lock = select_locked(
@@ -293,6 +301,10 @@ def main(source=None, max_ticks=0):
                     tgt = t4[:3]
             else:
                 dets = detector.infer(frame)
+                if own_reject and len(dets):
+                    fw, fh = frame.shape[1], frame.shape[0]
+                    dets = dets[reject_own(dets, fw, fh, own_edge,
+                                           own_corner, own_sides)]
                 if mono_target and not mono_armed:
                     pass
                 else:
@@ -302,6 +314,10 @@ def main(source=None, max_ticks=0):
                                         max_box_h=max_box_h)
         else:
             dets = detector.infer(frame)
+            if own_reject and len(dets):
+                fw, fh = frame.shape[1], frame.shape[0]
+                dets = dets[reject_own(dets, fw, fh, own_edge,
+                                       own_corner, own_sides)]
             if mono_target and mono_armed:
                 # Mono without IDs: acquire once, then sticky-only, never jump.
                 # Total loss just clears last_mid: reappearance auto-acquires.

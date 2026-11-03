@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pygetwindow
 
 import config
-from aim import apply_ignore_rects
+from aim import apply_ignore_rects, reject_own
 from gameSelection import capture_region
 from inference_v8 import V8Detector
 
@@ -65,17 +65,25 @@ def main():
             frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
         apply_ignore_rects(frame, getattr(config, "aaIgnoreRects", []))
         dets = det.infer(frame)
+        fh, fw = frame.shape[:2]
+        keep = reject_own(
+            dets, fw, fh, float(getattr(config, "aaOwnEdgePx", 15)),
+            bool(getattr(config, "aaOwnCorner", True)),
+            tuple(getattr(config, "aaOwnSides", ["left"]))) \
+            if (getattr(config, "aaOwnReject", True) and len(dets)) \
+            else [True] * len(dets)
         view = frame.copy()
         for (rx, ry, rw, rh) in getattr(config, "aaIgnoreRects", []) or []:
             cv2.rectangle(view, (rx, ry), (rx + rw, ry + rh), (255, 0, 255), 1)
-        print(f"--- frame {i}: {dets.shape[0]} dets ---")
-        for (x1, y1, x2, y2, c, cls) in dets.tolist():
+        print(f"--- frame {i}: {dets.shape[0]} dets ({sum(keep)} kept) ---")
+        for (x1, y1, x2, y2, c, cls), ok in zip(dets.tolist(), keep):
             xm, ym = (x1 + x2) / 2, (y1 + y2) / 2
             h = y2 - y1
             off = h * 0.38
-            print(f"  box=({x1:.0f},{y1:.0f},{x2:.0f},{y2:.0f}) conf={c:.2f} "
+            print(f"  {'KEEP' if ok else 'OWN '} box=({x1:.0f},{y1:.0f},{x2:.0f},{y2:.0f}) conf={c:.2f} "
                   f"mid=({xm:.0f},{ym:.0f}) aim_d=({xm - cw:.0f},{ym - off - ch:.0f})")
-            cv2.rectangle(view, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+            col = (0, 255, 0) if ok else (0, 0, 255)
+            cv2.rectangle(view, (int(x1), int(y1)), (int(x2), int(y2)), col, 2)
             cv2.circle(view, (int(xm), int(ym)), 4, (0, 0, 255), -1)
             cv2.circle(view, (int(xm), int(ym - off)), 4, (255, 0, 0), -1)
         cv2.drawMarker(view, (cw, ch), (255, 255, 255), cv2.MARKER_CROSS, 20, 2)

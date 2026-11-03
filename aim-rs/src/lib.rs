@@ -355,3 +355,28 @@ impl Kalman2D {
         (self.kx.ahead(t, vmax), self.ky.ahead(t, vmax))
     }
 }
+
+/// Lunar-style dynamic own-player rejection for third-person shoulder views.
+/// Drops detections touching a shoulder-side edge or sitting in the bottom
+/// shoulder corner. Mirrors `aim.reject_own`.
+pub fn reject_own(
+    dets: &[Det],
+    w: f64,
+    h: f64,
+    edge_px: f64,
+    corner: bool,
+    left: bool,
+    right: bool,
+) -> Vec<bool> {
+    dets.iter()
+        .map(|d| {
+            let own_left = left
+                && (d.x1 < edge_px
+                    || (corner && d.x1 < w * 0.2 && d.y2 > h * 0.8));
+            let own_right = right
+                && ((w - d.x2) < edge_px
+                    || (corner && (w - d.x2) < w * 0.2 && d.y2 > h * 0.8));
+            !(own_left || own_right)
+        })
+        .collect()
+}

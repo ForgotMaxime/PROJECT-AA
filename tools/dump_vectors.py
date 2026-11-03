@@ -120,6 +120,33 @@ def klead_cases():
     return cases
 
 
+def own_cases():
+    from aim import reject_own
+    import numpy as np
+    cases = []
+
+    def add(name, dets, w=260.0, h=320.0, edge=15.0, corner=True,
+            sides=("left",)):
+        arr = np.array(dets, dtype=np.float64).reshape(-1, 6)
+        keep = reject_own(arr, w, h, edge, corner, sides)
+        cases.append({"kind": "own", "name": name,
+                      "input": {"dets": dets, "w": w, "h": h, "edge": edge,
+                                "corner": corner, "sides": list(sides)},
+                      "expected": [bool(v) for v in keep]})
+
+    gun = [[0.9, 243.4, 28.6, 319.6, 0.33, 0.0]]
+    bot = [[149.0, 157.0, 170.0, 210.0, 0.73, 0.0]]
+    add("gun-edge-rejected", gun)
+    add("bot-kept", bot)
+    add("corner-rule", [[30.0, 200.0, 80.0, 300.0, 0.5, 0.0]])
+    add("corner-off-keeps", [[30.0, 200.0, 80.0, 300.0, 0.5, 0.0]], corner=False)
+    add("right-off-by-default", [[200.0, 100.0, 259.0, 300.0, 0.9, 0.0]])
+    add("right-on-rejects", [[200.0, 100.0, 259.0, 300.0, 0.9, 0.0]],
+        sides=("left", "right"))
+    add("empty", [])
+    return cases
+
+
 def locked_cases():
     from aim import select_locked
     import numpy as np
@@ -194,7 +221,7 @@ def chain_cases():
 
 def main():
     vectors = (select_cases() + smooth_cases() + offset_cases()
-               + klead_cases() + locked_cases() + chain_cases())
+               + klead_cases() + own_cases() + locked_cases() + chain_cases())
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

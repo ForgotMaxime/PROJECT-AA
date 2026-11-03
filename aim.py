@@ -222,3 +222,29 @@ class Kalman2D:
 
     def ahead(self, t, vmax):
         return (self.kx.ahead(t, vmax), self.ky.ahead(t, vmax))
+
+
+def reject_own(dets, frame_w, frame_h, edge_px=15, corner=True, sides=("left",)):
+    """Lunar-style dynamic own-player rejection (third-person shoulder view).
+
+    A detection is dropped when it touches a shoulder-side screen edge
+    (x1 < edge) or sits in the bottom shoulder corner
+    (x1 < 20% width and y2 > 80% height) — where your own model renders
+    regardless of camera rotation. Returns a bool keep-mask.
+    Pure: mirrored by the aim-rs port.
+    """
+    n = len(dets)
+    keep = np.ones(n, dtype=bool)
+    left = "left" in sides
+    right = "right" in sides
+    for i in range(n):
+        x1, _, x2, y2 = (float(dets[i, 0]), float(dets[i, 1]),
+                         float(dets[i, 2]), float(dets[i, 3]))
+        if left and (x1 < edge_px
+                     or (corner and x1 < frame_w * 0.2 and y2 > frame_h * 0.8)):
+            keep[i] = False
+        elif right and ((frame_w - x2) < edge_px
+                        or (corner and (frame_w - x2) < frame_w * 0.2
+                            and y2 > frame_h * 0.8)):
+            keep[i] = False
+    return keep

@@ -108,6 +108,14 @@ aaCropBottom = 0
 # Ignore detections taller than this (own close-up body/gun). 0 = off.
 aaMaxBoxH = 160
 
+# Dynamic own-player rejection, Lunar-style (third-person shoulder view).
+# Drops detections touching a shoulder-side edge or in the bottom shoulder
+# corner. Rotation-proof, unlike fixed rects. Sides: ["left"] or ["left","right"].
+aaOwnReject = True
+aaOwnEdgePx = 15
+aaOwnCorner = True
+aaOwnSides = ["left"]
+
 # Aim shift (ex-aaRightShift, Fortnite 3rd person): shifts the capture region
 # AND the aim point by the same amount, so aim math stays exact while the
 # selection center moves away from your own shoulder model. 0 = off.

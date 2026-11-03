@@ -1135,6 +1135,178 @@
   ]
  },
  {
+  "kind": "own",
+  "name": "gun-edge-rejected",
+  "input": {
+   "dets": [
+    [
+     0.9,
+     243.4,
+     28.6,
+     319.6,
+     0.33,
+     0.0
+    ]
+   ],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": true,
+   "sides": [
+    "left"
+   ]
+  },
+  "expected": [
+   false
+  ]
+ },
+ {
+  "kind": "own",
+  "name": "bot-kept",
+  "input": {
+   "dets": [
+    [
+     149.0,
+     157.0,
+     170.0,
+     210.0,
+     0.73,
+     0.0
+    ]
+   ],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": true,
+   "sides": [
+    "left"
+   ]
+  },
+  "expected": [
+   true
+  ]
+ },
+ {
+  "kind": "own",
+  "name": "corner-rule",
+  "input": {
+   "dets": [
+    [
+     30.0,
+     200.0,
+     80.0,
+     300.0,
+     0.5,
+     0.0
+    ]
+   ],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": true,
+   "sides": [
+    "left"
+   ]
+  },
+  "expected": [
+   false
+  ]
+ },
+ {
+  "kind": "own",
+  "name": "corner-off-keeps",
+  "input": {
+   "dets": [
+    [
+     30.0,
+     200.0,
+     80.0,
+     300.0,
+     0.5,
+     0.0
+    ]
+   ],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": false,
+   "sides": [
+    "left"
+   ]
+  },
+  "expected": [
+   true
+  ]
+ },
+ {
+  "kind": "own",
+  "name": "right-off-by-default",
+  "input": {
+   "dets": [
+    [
+     200.0,
+     100.0,
+     259.0,
+     300.0,
+     0.9,
+     0.0
+    ]
+   ],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": true,
+   "sides": [
+    "left"
+   ]
+  },
+  "expected": [
+   true
+  ]
+ },
+ {
+  "kind": "own",
+  "name": "right-on-rejects",
+  "input": {
+   "dets": [
+    [
+     200.0,
+     100.0,
+     259.0,
+     300.0,
+     0.9,
+     0.0
+    ]
+   ],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": true,
+   "sides": [
+    "left",
+    "right"
+   ]
+  },
+  "expected": [
+   false
+  ]
+ },
+ {
+  "kind": "own",
+  "name": "empty",
+  "input": {
+   "dets": [],
+   "w": 260.0,
+   "h": 320.0,
+   "edge": 15.0,
+   "corner": true,
+   "sides": [
+    "left"
+   ]
+  },
+  "expected": []
+ },
+ {
   "kind": "locked",
   "name": "keep-lock",
   "input": {

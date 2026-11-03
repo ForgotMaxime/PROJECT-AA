@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, headshot_offset, select_locked, select_target, smooth_move, Det, Kalman2D};
+use aim_rs::{aim_step, headshot_offset, reject_own, select_locked, select_target, smooth_move, Det, Kalman2D};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -55,6 +55,16 @@ struct KleadIn {
     gate: f64,
     t_lead: f64,
     vmax: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct OwnIn {
+    dets: Vec<[f64; 6]>,
+    w: f64,
+    h: f64,
+    edge: f64,
+    corner: bool,
+    sides: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -166,6 +176,17 @@ fn differential_vectors() {
                 }
                 let got = k.ahead(inp.t_lead, inp.vmax);
                 assert_eq!([got.0, got.1], exp, "klead/{}", c.name);
+            }
+            "own" => {
+                let inp: OwnIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: Vec<bool> = serde_json::from_value(c.expected.clone()).unwrap();
+                let dets = to_dets(&inp.dets);
+                let got = reject_own(
+                    &dets, inp.w, inp.h, inp.edge, inp.corner,
+                    inp.sides.iter().any(|s| s == "left"),
+                    inp.sides.iter().any(|s| s == "right"),
+                );
+                assert_eq!(got, exp, "own/{}", c.name);
             }
             "locked" => {
                 let inp: LockedIn = serde_json::from_value(c.input.clone()).unwrap();
