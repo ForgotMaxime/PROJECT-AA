@@ -24,12 +24,17 @@
 - [ ] ReID BoT-SORT seulement si swaps en multi-cible dominent
 - [x] Test live MAKCU (COM4 @4M, carré OK) — backend `makcu` actif par défaut
 
-## Écart techno (état des lieux)
+## Écart techno (état des lieux, réf SunOne v2 `sources/sunone_aimbot_2/docs/config.md`)
 - [x] Overlay/GUI de tuning live (`gui_live.py` DearPyGui + `--gui`, 16 réglages + stats)
 - [x] Mouvements humanisés : segments/Bézier natifs MAKCU (`aaMakcuSegments`, `aaMakcuBezier`, vérifié loopback)
-- [ ] Modèle fine-tuné Fortnite (hologrammes, skins) — plafond de précision actuel = COCO
+- [ ] Conversion FOV/sensibilité (pixels → souris via FOV jeu + profils, pas scalaire aveugle)
+- [ ] Courbe de vitesse (exposant, snap radius/boost) + WindMouse + recoil
+- [ ] Modèle 2 classes (player + head) puis fine-tuné Fortnite — plafond actuel = COCO 1 classe
+- [ ] Overlay avec compensation de latence (boîtes décalées de l'âge frame)
 - [ ] YOLOv12/pose (tester `yolo12s`, `yolo11s-pose` pour visée tête directe)
 - [ ] Masque de profondeur (Depth-Anything) si les heuristiques anti-own-char saturent
+- [ ] Graphe de nœuds modulaire (vs `main_v8` monolithique)
+- [ ] Collecte auto labellisée en jeu (boucle dataset)
 
 ## Écarté
 - [ ] ~~SAHI temps réel, RT-DETR, `best.onnx` YOLOv5~~ — trop lent / mort
