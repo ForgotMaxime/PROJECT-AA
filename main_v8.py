@@ -177,11 +177,12 @@ def main():
                 if t4 is None:
                     lock_misses += 1
                     if lock_misses > track_buffer:
+                        # Total loss: drop the lock but stay armed while held,
+                        # so a reappearance auto-acquires without re-press.
                         locked_id = None
                         lock_misses = 0
                         kf = None
                         kf_id = None
-                        mono_armed = False
                 elif (locked_id is not None and new_lock != locked_id
                         and lock_misses < lock_hold and kf is not None):
                     # Locked target briefly unseen: hold the lock and coast-aim
@@ -191,11 +192,9 @@ def main():
                     coasted = True
                     ax, ay = kf.ahead(lead_t, lead_vmax)
                     tgt = (ax, ay, ema_h if ema_h is not None else t4[2])
-                elif (mono_target and locked_id is not None
-                        and new_lock != locked_id):
-                    # Mono: never steal another target, disarm instead.
-                    mono_armed = False
                 else:
+                    # Committed switch (hold expired) or first lock: one active
+                    # target, never idle while anything is visible.
                     lock_misses = 0
                     locked_id = new_lock
                     tgt = t4[:3]
@@ -212,6 +211,7 @@ def main():
             dets = detector.infer(frame)
             if mono_target and mono_armed:
                 # Mono without IDs: acquire once, then sticky-only, never jump.
+                # Total loss just clears last_mid: reappearance auto-acquires.
                 if last_mid is None:
                     tgt = select_target(dets, cWidth, cHeight,
                                         center=centerOfScreen, last=None,
@@ -222,12 +222,6 @@ def main():
                                         center=False, last=last_mid,
                                         sticky_px=sticky_px, fov=fov,
                                         max_box_h=max_box_h)
-                if tgt is None:
-                    lock_misses += 1
-                    if lock_misses > lock_hold:
-                        mono_armed = False
-                else:
-                    lock_misses = 0
             else:
                 tgt = select_target(dets, cWidth, cHeight,
                                     center=centerOfScreen, last=last_mid,
