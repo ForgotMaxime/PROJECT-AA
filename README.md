@@ -55,17 +55,20 @@ python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
 ## YOLOv8 path (`main_v8.py`, `inference_v8.py`)
 
 - Model auto-downloads `yolo11s.pt` on first run (git-ignored, 18MB). Default
-  runtime is `yolo11s.onnx` (git-ignored, ~36MB, ORT CUDA ~13ms vs torch ~22ms).
-- ONNX: `python export_v8.py yolo11s.pt 320 onnx`, then `config.py:v8Model = "yolo11s.onnx"`.
-  GPU ORT needs the CUDA13/cuDNN9 pip DLLs: `pip install -U "onnxruntime-gpu[cuda,cudnn]"`
-  (in `requirements.txt`); without them it warns and falls back to slow CPU.
+  runtime is `yolo11s.engine` (git-ignored, ~47MB, TRT FP16 ~8ms end-to-end vs
+  ORT ~18ms vs torch ~27ms, track mode 320px RTX 3060).
+- TensorRT: `python export_v8.py yolo11s.pt 320 engine` (needs `tensorrt-cu12` +
+  build deps `nvidia-modelopt onnx-graphsurgeon onnxscript lief polygraphy`;
+  ~4 min build, GPU-specific file). Fallbacks: `yolo11s.onnx` then `yolo11s.pt`.
 - TensorRT: `python export_v8.py yolo11s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "yolo11s.engine"`.
 - Tracking: `v8Track` (ByteTrack IDs via `trackers/bytetrack-aim.yaml`, `persist=True`) + `select_locked` ID lock in `aim.py` (`aaTrackMinConf`, `aaTrackBuffer`); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer. `aaLockHold` ticks of coast-aim on the locked prediction before switching targets. `aaMonoTarget`: one active target while CAPS is held (hold, then committed switch — never idle); release + press to re-acquire.
-- Config (`config.py`): `v8Model` (`yolo11s.onnx`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`makcu` live, `sendinput`, `win32` legacy).
+- Config (`config.py`): `v8Model` (`yolo11s.engine`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`makcu` live, `sendinput`, `win32` legacy).
 - Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
 - MAKCU: `config.py:aaMouseBackend = "makcu"`, `aaMakcuPort` (`"COM4"` here), `aaMakcuBaud` (4000000 here; 115200 stock, toggle: press its button 4x in 2s). Sends `km.move(dx,dy)\r` per tick, zero moves skipped, handle closed on exit. Needs CH343 driver + AIO/test tool closed. Verified live (square test + in-game smooth).
 - Capture (`gameSelection.py`): region clamped to monitor, `bettercam` with `dxcam` fallback.
-- Measured RTX 3060, 320px zero-frame: `yolo11s.pt` torch CUDA ~22ms, `yolo11s.onnx` ORT CUDA ~13ms (CPU fallback was ~240ms before the CUDA13/cuDNN9 pip DLLs).
+- Measured RTX 3060, 320px track mode: `yolo11s.engine` TRT FP16 ~8ms end-to-end
+  (infer 1.3ms), `yolo11s.onnx` ORT CUDA ~18ms, `yolo11s.pt` torch ~27ms.
+  ORT needs the CUDA13/cuDNN9 pip DLLs or it falls back to ~240ms CPU.
 
 ## Config (`config.py`)
 
