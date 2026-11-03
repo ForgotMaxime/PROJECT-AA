@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from aim import select_target, smooth_move  # noqa: E402
+from aim import headshot_offset, select_target, smooth_move  # noqa: E402
 
 FRAME_A = [  # two persons; mids (140,160) d=20 and (20,30) d~184 from (160,160)
     [100.0, 100.0, 180.0, 220.0, 0.9, 0.0],
@@ -84,6 +84,16 @@ def smooth_cases():
     return cases
 
 
+def offset_cases():
+    cases = []
+    for h in (20.0, 79.9, 80.0, 100.0, 150.0, 150.1, 300.0):
+        for mode in (True, False):
+            cases.append({"kind": "offset", "name": f"h{h}-m{int(mode)}",
+                          "input": {"h": h, "headshot_mode": mode},
+                          "expected": headshot_offset(h, mode)})
+    return cases
+
+
 def chain_cases():
     """Full main_v8.py tick math: select -> headshot offset -> amp -> smooth."""
     import numpy as np
@@ -101,7 +111,7 @@ def chain_cases():
             mv, new_last = None, None
         else:
             xm, ym, h = tgt
-            off = h * (0.38 if headshot else 0.2)
+            off = headshot_offset(h, headshot)  # single-tick EMA init = h
             mv = list(smooth_move((xm - cw) * amp, (ym - off - ch) * amp,
                                   smooth=smooth, max_step=max_step,
                                   deadzone=deadzone, jitter=0))
@@ -124,7 +134,7 @@ def chain_cases():
 
 
 def main():
-    vectors = select_cases() + smooth_cases() + chain_cases()
+    vectors = select_cases() + smooth_cases() + offset_cases() + chain_cases()
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

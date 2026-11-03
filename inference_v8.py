@@ -6,19 +6,27 @@ device=0, else CPU). `.engine` (TensorRT) also loads via `YOLO()` when
 TensorRT is installed; building needs `python export_v8.py <model> 320 engine`.
 
 Note: onnxruntime-gpu >=1.30 needs CUDA 13 + cuDNN 9 for GPU ORT. Without
-them it falls back to CPU (~250ms/320px). Default `v8Model=yolov8s.pt`
-uses torch CUDA12 (~16ms on RTX 3060) with no extra setup.
+them it falls back to CPU (~250ms/320px). Default `v8Model=yolo11s.pt`
+uses torch CUDA12 FP32: FP16 paths (`half` flag / `model.half()`) were
+measured ~equal on batch=1 RTX 3060, so FP32 stays (also avoids a
+per-call deprecation warning in ultralytics 8.4).
 """
 import numpy as np
 
 
 class V8Detector:
-    def __init__(self, model="yolov8s.pt", imgsz=320, conf=0.4, iou=0.45, device=0):
+    def __init__(self, model="yolo11s.pt", imgsz=320, conf=0.25, iou=0.5,
+                 device=0):
         from ultralytics import YOLO
         self.imgsz = int(imgsz)
         self.conf = float(conf)
         self.iou = float(iou)
         self.device = device
+        try:
+            import torch
+            torch.backends.cudnn.benchmark = True
+        except Exception:
+            pass
         self.model = YOLO(model)
 
     def infer(self, frame_bgr):

@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, select_target, smooth_move, Det};
+use aim_rs::{aim_step, headshot_offset, select_target, smooth_move, Det};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -37,6 +37,12 @@ struct SmoothIn {
     smooth: f64,
     max_step: i64,
     deadzone: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct OffsetIn {
+    h: f64,
+    headshot_mode: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -140,6 +146,12 @@ fn differential_vectors() {
                     "chain/{}/last",
                     c.name
                 );
+            }
+            "offset" => {
+                let inp: OffsetIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: f64 = serde_json::from_value(c.expected.clone()).unwrap();
+                let got = headshot_offset(inp.h, inp.headshot_mode);
+                assert_eq!(got, exp, "offset/{}", c.name);
             }
             other => panic!("unknown vector kind: {other}"),
         }

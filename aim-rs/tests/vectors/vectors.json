@@ -704,6 +704,132 @@
   ]
  },
  {
+  "kind": "offset",
+  "name": "h20.0-m1",
+  "input": {
+   "h": 20.0,
+   "headshot_mode": true
+  },
+  "expected": 8.4
+ },
+ {
+  "kind": "offset",
+  "name": "h20.0-m0",
+  "input": {
+   "h": 20.0,
+   "headshot_mode": false
+  },
+  "expected": 4.0
+ },
+ {
+  "kind": "offset",
+  "name": "h79.9-m1",
+  "input": {
+   "h": 79.9,
+   "headshot_mode": true
+  },
+  "expected": 33.558
+ },
+ {
+  "kind": "offset",
+  "name": "h79.9-m0",
+  "input": {
+   "h": 79.9,
+   "headshot_mode": false
+  },
+  "expected": 15.980000000000002
+ },
+ {
+  "kind": "offset",
+  "name": "h80.0-m1",
+  "input": {
+   "h": 80.0,
+   "headshot_mode": true
+  },
+  "expected": 30.4
+ },
+ {
+  "kind": "offset",
+  "name": "h80.0-m0",
+  "input": {
+   "h": 80.0,
+   "headshot_mode": false
+  },
+  "expected": 16.0
+ },
+ {
+  "kind": "offset",
+  "name": "h100.0-m1",
+  "input": {
+   "h": 100.0,
+   "headshot_mode": true
+  },
+  "expected": 38.0
+ },
+ {
+  "kind": "offset",
+  "name": "h100.0-m0",
+  "input": {
+   "h": 100.0,
+   "headshot_mode": false
+  },
+  "expected": 20.0
+ },
+ {
+  "kind": "offset",
+  "name": "h150.0-m1",
+  "input": {
+   "h": 150.0,
+   "headshot_mode": true
+  },
+  "expected": 57.0
+ },
+ {
+  "kind": "offset",
+  "name": "h150.0-m0",
+  "input": {
+   "h": 150.0,
+   "headshot_mode": false
+  },
+  "expected": 30.0
+ },
+ {
+  "kind": "offset",
+  "name": "h150.1-m1",
+  "input": {
+   "h": 150.1,
+   "headshot_mode": true
+  },
+  "expected": 49.533
+ },
+ {
+  "kind": "offset",
+  "name": "h150.1-m0",
+  "input": {
+   "h": 150.1,
+   "headshot_mode": false
+  },
+  "expected": 30.02
+ },
+ {
+  "kind": "offset",
+  "name": "h300.0-m1",
+  "input": {
+   "h": 300.0,
+   "headshot_mode": true
+  },
+  "expected": 99.0
+ },
+ {
+  "kind": "offset",
+  "name": "h300.0-m0",
+  "input": {
+   "h": 300.0,
+   "headshot_mode": false
+  },
+  "expected": 60.0
+ },
+ {
   "kind": "chain",
   "name": "headshot",
   "input": {

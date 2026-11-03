@@ -36,10 +36,10 @@ centerOfScreen = True
 onnxChoice = 1
 
 # YOLOv8 (main_v8.py) - .pt, .onnx or .engine, device 0 = cuda:0, "cpu" = CPU
-v8Model = "yolov8s.pt"
+v8Model = "yolo11s.pt"
 v8Imgsz = 320
-v8Conf = 0.4
-v8Iou = 0.45
+v8Conf = 0.25
+v8Iou = 0.5
 v8Device = 0
 
 # Mouse backend for main_v8.py: "sendinput" (default), "win32" (legacy) or "makcu"
@@ -54,6 +54,10 @@ aaSmooth = 1.3
 aaMaxStep = 60
 aaDeadzone = 1
 aaJitter = 0
+
+# Deadzone hysteresis (px): start moving above enter, stop below exit.
+aaDzEnter = 2.5
+aaDzExit = 1.0
 
 # Target lock: keep last target within this radius, FOV box half-extents (0 = off)
 aaStickyPx = 80

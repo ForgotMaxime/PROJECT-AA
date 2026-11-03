@@ -104,6 +104,22 @@ pub fn select_target(
     Some((dets[i].mid_x(), dets[i].mid_y(), dets[i].height()))
 }
 
+/// Vertical offset from box center toward the head, by box height.
+/// Mirrors `aim.headshot_offset` exactly (bin edges included).
+pub fn headshot_offset(h: f64, headshot_mode: bool) -> f64 {
+    if !headshot_mode {
+        return h * 0.2;
+    }
+    let k = if h < 80.0 {
+        0.42
+    } else if h <= 150.0 {
+        0.38
+    } else {
+        0.33
+    };
+    h * k
+}
+
 /// CPython `round()` semantics: round-half-to-even.
 fn round_half_even(x: f64) -> f64 {
     let f = x.floor();
@@ -192,7 +208,7 @@ pub fn aim_step(
     match select_target(dets, cw, ch, center, last, sticky_px, fov, max_box_h) {
         None => (None, None),
         Some((xm, ym, h)) => {
-            let offset = h * if headshot_mode { 0.38 } else { 0.2 };
+            let offset = headshot_offset(h, headshot_mode);
             let raw_dx = (xm - cw) * amp;
             let raw_dy = (ym - offset - ch) * amp;
             let mv = smooth_move(raw_dx, raw_dy, smooth, max_step, deadzone, 0.0, 0);

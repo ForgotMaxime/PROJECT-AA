@@ -6,7 +6,7 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import apply_ignore_rects, select_target, smooth_move
+from aim import apply_ignore_rects, headshot_offset, select_target, smooth_move
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -81,11 +81,15 @@ def main():
     fov = (fovX, fovY) if fovX and fovY else None
     ignore_rects = _cfg("aaIgnoreRects", [])
     max_box_h = float(_cfg("aaMaxBoxH", 0))
+    dz_enter = float(_cfg("aaDzEnter", 2.5))
+    dz_exit = float(_cfg("aaDzExit", 1.0))
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou, device=device)
 
     colors = np.random.uniform(0, 255, size=(2, 3))
     last_mid = None
+    ema_h = None
+    engaged = False
     count = 0
     infer_ms = 0.0
     sTime = time.time()
@@ -114,20 +118,29 @@ def main():
 
         if tgt is not None:
             xMid, yMid, box_h = tgt
-            offset = box_h * (0.38 if headshot_mode else 0.2)
+            ema_h = box_h if ema_h is None else 0.3 * box_h + 0.7 * ema_h
+            offset = headshot_offset(ema_h, headshot_mode)
             # aaShiftX/Y: same shift as the capture region, so aim stays exact
             # while the selection center moves (ex-aaRightShift).
             raw_dx = (xMid + shift_x - cWidth) * aaMovementAmp
             raw_dy = (yMid + shift_y - offset - cHeight) * aaMovementAmp
-            holding = bool(win32api.GetKeyState(hold_key))
-            dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
-                                 deadzone=deadzone, jitter=jitter if holding else 0)
-            if holding:
-                move_relative(dx, dy, backend=mouse_backend,
-                              port=makcu_port, baud=makcu_baud)
+            mag = float(np.hypot(raw_dx, raw_dy))
+            # Deadzone hysteresis: engage above enter, release below exit.
+            if (engaged and mag < dz_exit) or (not engaged and mag < dz_enter):
+                engaged = False
+            else:
+                engaged = True
+                holding = bool(win32api.GetKeyState(hold_key))
+                dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
+                                     deadzone=deadzone, jitter=jitter if holding else 0)
+                if holding:
+                    move_relative(dx, dy, backend=mouse_backend,
+                                  port=makcu_port, baud=makcu_baud)
             last_mid = (xMid, yMid)
         else:
             last_mid = None
+            ema_h = None
+            engaged = False
 
         if visuals:
             view = frame

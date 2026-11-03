@@ -22,6 +22,19 @@ def apply_ignore_rects(frame, rects):
     return frame
 
 
+def headshot_offset(h, headshot_mode=True):
+    """Vertical offset from box center toward the head, by box height.
+
+    Fixed 0.38*h jitters vertically as h fluctuates; bins stabilize it.
+    Pure math: mirrored by the aim-rs port.
+    """
+    h = float(h)
+    if not headshot_mode:
+        return h * 0.2
+    k = 0.42 if h < 80.0 else (0.38 if h <= 150.0 else 0.33)
+    return h * k
+
+
 def select_target(dets, cWidth, cHeight, center=True, last=None, sticky_px=80,
                   fov=None, max_box_h=0):
     """Pick one target from dets (N,6) x1,y1,x2,y2,conf,cls (pixels).
