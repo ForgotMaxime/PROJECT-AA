@@ -1,13 +1,17 @@
 """Export a YOLOv8 .pt model to ONNX or TensorRT engine.
 
-ONNX (default): `python export_v8.py yolov8s.pt 320 onnx`
+ONNX (default): `python export_v8.py weights/yolo11s.pt 320 onnx`
 Engine (needs NVIDIA TensorRT installed):
-    `python export_v8.py yolov8s.pt 320 engine`
+    `python export_v8.py weights/yolo11s.pt 320 engine`
+
+Output is moved next to the input model (e.g. weights/).
 """
+import shutil
 import sys
+from pathlib import Path
 
 
-def main(model="yolo11s.pt", imgsz=320, fmt="onnx"):
+def main(model="weights/yolo11s.pt", imgsz=320, fmt="onnx"):
     from ultralytics import YOLO
     m = YOLO(model)
     fmt = str(fmt).lower()
@@ -24,10 +28,15 @@ def main(model="yolo11s.pt", imgsz=320, fmt="onnx"):
         out = m.export(format="engine", imgsz=[int(imgsz), int(imgsz)], half=True, workspace=4)
     else:
         raise SystemExit(f'unknown format: {fmt!r} (use "onnx" or "engine")')
+    out = Path(out)
+    want = Path(model).parent / out.name
+    if out.resolve() != want.resolve():
+        shutil.move(str(out), str(want))
+        out = want
     print(out)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "yolo11s.pt",
+    main(sys.argv[1] if len(sys.argv) > 1 else "weights/yolo11s.pt",
          int(sys.argv[2]) if len(sys.argv) > 2 else 320,
          sys.argv[3] if len(sys.argv) > 3 else "onnx")

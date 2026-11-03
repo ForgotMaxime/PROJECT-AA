@@ -13,7 +13,7 @@ import numpy as np
 
 
 class V8Detector:
-    def __init__(self, model="yolo11s.onnx", imgsz=320, conf=0.25, iou=0.5,
+    def __init__(self, model="weights/yolo11s.onnx", imgsz=320, conf=0.25, iou=0.5,
                  device=0, tracker=None):
         # ORDER MATTERS: torch (CUDA12) must load BEFORE the CUDA13/cuDNN9
         # pip DLLs are preloaded for ORT, or torch fails to import (WinError 127).

@@ -116,7 +116,7 @@ def main(source=None, max_ticks=0):
     visuals = bool(_cfg("visuals", False))
     centerOfScreen = bool(_cfg("centerOfScreen", True))
 
-    model = _cfg("v8Model", "yolo11s.engine")
+    model = _cfg("v8Model", "weights/yolo11s.engine")
     imgsz = int(_cfg("v8Imgsz", 320))
     conf = float(_cfg("v8Conf", _cfg("confidence", 0.25)))
     iou = float(_cfg("v8Iou", 0.5))

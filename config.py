@@ -41,7 +41,7 @@ centerOfScreen = True
 onnxChoice = 1
 
 # YOLOv8 (main_v8.py) - .pt, .onnx or .engine, device 0 = cuda:0, "cpu" = CPU
-v8Model = "yolo11s.engine"
+v8Model = "weights/yolo11s.engine"
 v8Imgsz = 320
 v8Conf = 0.25
 v8Iou = 0.5

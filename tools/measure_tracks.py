@@ -98,7 +98,7 @@ def main():
     ap.add_argument("folder", default="diag")
     ap.add_argument("--replay", action="store_true")
     ap.add_argument("--tracker", default="trackers/bytetrack-aim.yaml")
-    ap.add_argument("--model", default="yolo11s.engine")
+    ap.add_argument("--model", default="weights/yolo11s.engine")
     ap.add_argument("--cw", type=float, default=130.0)
     ap.add_argument("--ch", type=float, default=160.0)
     args = ap.parse_args()

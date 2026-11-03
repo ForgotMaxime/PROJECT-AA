@@ -15,12 +15,12 @@ Known reports: Splitgate, EQU8 (win32 mouse movement detection).
 
 | Script | Backend | Notes |
 |---|---|---|
-| `main.py` | PyTorch (`torch.hub yolov5s`, legacy) | Easiest, any machine |
-| `main_onnx.py` | ONNX Runtime (legacy v5) | See `config.py:onnxChoice` (1=CPU, 2=AMD/NVIDIA, 3=NVIDIA) |
-| `main_tensorrt.py` | TensorRT (legacy v5) | NVIDIA only, hardest setup |
-| `main_v8.py` | Ultralytics YOLOv8 `.pt` / `.onnx` | Default path, CUDA12. See below |
+| `legacy/main.py` | PyTorch (`torch.hub yolov5s`, legacy) | Archived upstream code, run as `python legacy/main.py` |
+| `legacy/main_onnx.py` | ONNX Runtime (legacy v5) | See `config.py:onnxChoice` (1=CPU, 2=AMD/NVIDIA, 3=NVIDIA) |
+| `legacy/main_tensorrt.py` | TensorRT (legacy v5) | NVIDIA only, hardest setup |
+| `main_v8.py` | Ultralytics YOLO `.pt` / `.onnx` / `.engine` | Default path, CUDA12. See below |
 
-Entry point legacy: `main.py:17 main()` loads `yolov5s` via `torch.hub`, captures with `gameSelection.py`, moves mouse via `win32api`.
+Entry point legacy: `legacy/main.py:17 main()` loads `yolov5s` via `torch.hub`, captures with `gameSelection.py`, moves mouse via `win32api`.
 
 ## Requirements (upstream pin)
 
@@ -36,7 +36,7 @@ Extras (Streamlit demos only): `Conda/additionalRequirements.txt`.
 TensorRT path (condensed, NVIDIA only): CUDA 11.8 + cuDNN 8.9.6 + TensorRT 8.6 GA,
 `pip install <cuda>/python/tensorrt-8.6.1-cp311-none-win_amd64.whl`,
 set `CUDA\v11.8\lib`, `libnvvp`, `bin` in PATH, then e.g.
-`python ./export.py --weights ./yolov5s.pt --include engine --half --imgsz 320 320 --device 0`.
+`python legacy/export.py --weights ./yolov5s.pt --include engine --half --imgsz 320 320 --device 0`.
 Full original 12-step guide removed as outdated; expect adaptation for CUDA 12 / Python >3.11.
 
 ## Run
@@ -53,15 +53,15 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 
 ## YOLOv8 path (`main_v8.py`, `inference_v8.py`)
 
-- Model auto-downloads `yolo11s.pt` on first run (git-ignored, 18MB). Default
-  runtime is `yolo11s.engine` (git-ignored, ~47MB, TRT FP16 ~8ms end-to-end vs
+- Model auto-downloads `weights/yolo11s.pt` on first run (git-ignored, 18MB). Default
+  runtime is `weights/yolo11s.engine` (git-ignored, ~47MB, TRT FP16 ~8ms end-to-end vs
   ORT ~18ms vs torch ~27ms, track mode 320px RTX 3060).
-- TensorRT: `python export_v8.py yolo11s.pt 320 engine` (needs `tensorrt-cu12` +
+- TensorRT: `python export_v8.py weights/yolo11s.pt 320 engine` (needs `tensorrt-cu12` +
   build deps `nvidia-modelopt onnx-graphsurgeon onnxscript lief polygraphy`;
-  ~4 min build, GPU-specific file). Fallbacks: `yolo11s.onnx` then `yolo11s.pt`.
-- TensorRT: `python export_v8.py yolo11s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "yolo11s.engine"`.
+  ~4 min build, GPU-specific file). Fallbacks: `weights/yolo11s.onnx` then `weights/yolo11s.pt`.
+- TensorRT: `python export_v8.py weights/yolo11s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "weights/yolo11s.engine"`.
 - Tracking: `v8Track` (ByteTrack IDs via `trackers/bytetrack-aim.yaml`, `persist=True`) + `select_locked` ID lock in `aim.py` (`aaTrackMinConf`, `aaTrackBuffer`, `aaRecoverPx` spatial continuity over ID on disagreement); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer. `aaLockHold` ticks of coast-aim on the locked prediction before switching targets. `aaMonoTarget`: one active target while CAPS is held (hold, then committed switch — never idle); release + press to re-acquire.
-- Config (`config.py`): `v8Model` (`yolo11s.engine`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`makcu` live, `sendinput`, `win32` legacy).
+- Config (`config.py`): `v8Model` (`weights/yolo11s.engine`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`makcu` live, `sendinput`, `win32` legacy).
 - Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
 - MAKCU: `config.py:aaMouseBackend = "makcu"`, `aaMakcuPort` (`"COM4"` here), `aaMakcuBaud` (4000000 here; 115200 stock, toggle: press its button 4x in 2s). Sends `km.move(dx,dy)\r` per tick, zero moves skipped, handle closed on exit. Needs CH343 driver + AIO/test tool closed. Verified live (square test + in-game smooth).
 - Capture (`gameSelection.py`): region clamped to monitor, `bettercam` with `dxcam` fallback.

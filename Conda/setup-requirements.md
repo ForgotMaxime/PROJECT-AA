@@ -37,5 +37,5 @@ pip install -r Conda/additionalRequirements.txt
 ## 5. Test
 
 ```bash
-python main.py
+python main_v8.py --window Fortnite
 ```

@@ -31,7 +31,10 @@ from zipfile import ZipFile, is_zipfile
 import cv2
 import numpy as np
 import pandas as pd
-import pkg_resources as pkg
+try:
+    import pkg_resources as pkg
+except ImportError:  # modern setuptools: unused legacy import
+    pkg = None
 import torch
 import torchvision
 import yaml
@@ -388,7 +391,11 @@ def check_python(minimum='3.8.0'):
 
 def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=False, hard=False, verbose=False):
     # Check version vs. required version
-    current, minimum = (pkg.parse_version(x) for x in (current, minimum))
+    if pkg is not None:
+        current, minimum = (pkg.parse_version(x) for x in (current, minimum))
+    else:  # setuptools>=81 removed pkg_resources; packaging is equivalent here
+        from packaging.version import parse as _parse
+        current, minimum = (_parse(x) for x in (current, minimum))
     result = (current == minimum) if pinned else (current >= minimum)  # bool
     s = f'WARNING ⚠️ {name}{minimum} is required by YOLOv5, but {name}{current} is currently installed'  # string
     if hard:

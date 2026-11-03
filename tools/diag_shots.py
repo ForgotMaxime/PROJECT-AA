@@ -23,7 +23,7 @@ print("full:", img.shape, shots[0].name)
 crop = img[380:700, 880:1140]  # same box as live capture
 print("crop:", crop.shape)
 for imgsz in (320, 640):
-    d = V8Detector("yolov8s.pt", imgsz=imgsz, conf=0.25, device=0)
+    d = V8Detector("weights/yolov8s.pt", imgsz=imgsz, conf=0.25, device=0)
     t = time.perf_counter()
     dets = d.infer(crop)
     dt = (time.perf_counter() - t) * 1000
