@@ -13,15 +13,14 @@ aaMovementAmp = .7
 
 # Game FOV conversion (SunOne-style, fixed): pixels -> mouse counts via the
 # real game FOV + sensitivity instead of the blind aaMovementAmp scalar.
-# 0 = off (legacy amp mode, current behavior). Set both to your in-game FOV
-# (e.g. Fortnite ~80/60) to enable. screen W/H: full game window size,
-# 0 = auto (window size at startup). sens/yaw/pitch: yaw/pitch are
-# degrees per count at sens 1 (SunOne defaults 0.022/0.022).
-aaGameFovX = 0
-aaGameFovY = 0
-aaSens = 1.0
-aaYaw = 0.022
-aaPitch = 0.022
+# 0 = off (legacy amp mode). Fortnite (screenshot Image/ 2026-11-03) :
+# FOV verrouillé 80° horizontal 16:9 -> 50.5° vertical ; yaw documenté
+# 0.005555°/count par % (aaSens en unités % natives du jeu, pas en fraction).
+aaGameFovX = 80
+aaGameFovY = 50.5
+aaSens = 2.1
+aaYaw = 0.005555
+aaPitch = 0.005555
 aaScreenW = 0
 aaScreenH = 0
 

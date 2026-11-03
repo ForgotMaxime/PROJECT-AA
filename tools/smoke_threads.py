@@ -56,19 +56,17 @@ def main():
     config.v8Track = False  # detect path; tracker covered live
     config.v8Conf = 0.05  # ensure the test crop fires
     config.aaIgnoreRects = []  # bypass gun blackout for the test
+    config.aaOwnReject = False  # pipeline test: aim at whatever fires
+    # (own-rejection logic is covered by the Rust differential vectors)
 
     data = np.frombuffer(
         Path("diag/shot_crop_320.png").read_bytes(), np.uint8)
     crop_bgr = cv2.imdecode(data, cv2.IMREAD_COLOR)
     crop = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2BGRA)
-    # ADS crop with a strong person detection (engine-verified). The corridor
-    # crop above may yield nothing on the current default model.
-    shots = sorted(Path(r"C:\Users\humax\Desktop\FFA\Image").glob("*.png"))
-    full = cv2.imdecode(
-        np.frombuffer(shots[1].read_bytes(), np.uint8), cv2.IMREAD_COLOR)
-    ads = cv2.cvtColor(full[374:694, 60:320], cv2.COLOR_BGR2BGRA)
+    # The diag crop fires 1 person on the default engine at conf 0.05
+    # (engine-verified); blank covers the total-loss path.
     blank = np.zeros_like(crop)
-    cam = FakeCam([ads, ads, blank, ads])
+    cam = FakeCam([crop, crop, blank, crop])
 
     before = set(t.name for t in threading.enumerate())
     t0 = time.perf_counter()
