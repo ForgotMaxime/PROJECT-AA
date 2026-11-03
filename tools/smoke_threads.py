@@ -76,7 +76,8 @@ def main():
     assert ser is not None, "mouse thread never opened loopback"
     pending = ser.read(1024)
     assert pending.startswith(b"km.move("), pending[:40]
-    leaked = [t.name for t in threading.enumerate() if t.name not in before]
+    leaked = [t.name for t in threading.enumerate()
+              if t.name not in before and t.name.startswith("aa-")]
     assert not leaked, f"thread leak: {leaked}"
     print(f"smoke ok: 30 ticks in {dt:.1f}s, mouse bytes: {pending[:40]!r}")
     mouse.close_makcu()

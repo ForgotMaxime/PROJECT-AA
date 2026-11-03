@@ -159,6 +159,19 @@ def main(source=None, max_ticks=0):
                          device=device,
                          tracker=tracker_yaml if use_tracker else None)
 
+    # ORT/TRT sessions build lazily on first predict (multi-second freeze).
+    # Warm up now so the first CAPS press aims immediately.
+    print(f"Warming up {model} ...", flush=True)
+    try:
+        _warm = np.zeros((160, 160, 3), dtype=np.uint8)
+        if use_tracker:
+            detector.track(_warm)
+        else:
+            detector.infer(_warm)
+    except Exception as e:
+        print(f"Warmup failed (will retry live): {e}")
+    print("Warmup done.", flush=True)
+
     colors = np.random.uniform(0, 255, size=(2, 3))
     last_mid = None
     ema_h = None
@@ -182,12 +195,12 @@ def main(source=None, max_ticks=0):
     mouse_q = queue.Queue()
     stop_ev = threading.Event()
     cap_t = threading.Thread(target=_capture_loop, args=(camera, frame_q, stop_ev),
-                             daemon=True)
+                             daemon=True, name="aa-capture")
     mouse_t = threading.Thread(target=_mouse_loop,
                                args=(mouse_q, stop_ev, mouse_backend,
                                      makcu_port, makcu_baud, hold_key,
                                      stats, stats_lock),
-                               daemon=True)
+                               daemon=True, name="aa-mouse")
     cap_t.start()
     mouse_t.start()
 
@@ -235,7 +248,9 @@ def main(source=None, max_ticks=0):
         tgt = None
         dets = np.zeros((0, 6), dtype=np.float32)
         if mono_target and not mono_armed:
-            pass  # disarmed: fresh CAPS press to re-acquire, no inference spent
+            # Disarmed: fresh CAPS press to re-acquire. No inference spent,
+            # just a calm spin so the feed stays live without burning CPU.
+            time.sleep(0.02)
         elif tracker_ok:
             try:
                 tr = detector.track(frame)
