@@ -153,18 +153,20 @@ def locked_cases():
     cases = []
 
     def add(name, dets, ids, locked, cw=160.0, ch=160.0, center=True,
-            last=None, sticky=80.0, fov=None, max_box_h=0.0, min_conf=0.3):
+            last=None, sticky=80.0, fov=None, max_box_h=0.0, min_conf=0.3,
+            recover_px=0.0):
         arr = np.array(dets, dtype=np.float64).reshape(-1, 6)
         tgt, new_lock = select_locked(
             arr, ids, locked, cw, ch, center=center,
             last=tuple(last) if last else None,
             sticky_px=sticky, fov=tuple(fov) if fov else None,
-            max_box_h=max_box_h, min_conf=min_conf)
+            max_box_h=max_box_h, min_conf=min_conf, recover_px=recover_px)
         cases.append({"kind": "locked", "name": name,
                       "input": {"dets": dets, "ids": ids, "locked": locked,
                                 "cw": cw, "ch": ch, "center": center,
                                 "last": last, "sticky_px": sticky, "fov": fov,
-                                "max_box_h": max_box_h, "min_conf": min_conf},
+                                "max_box_h": max_box_h, "min_conf": min_conf,
+                                "recover_px": recover_px},
                       "expected": {
                           "tgt": ({"x": tgt[0], "y": tgt[1], "h": tgt[2],
                                    "tid": tgt[3]} if tgt else None),
@@ -177,6 +179,14 @@ def locked_cases():
     add("no-id-fallback", FRAME_A, [None, None], 7)
     add("neg-id-means-none", FRAME_A, [-1, -1], -1)
     add("empty", [], [], 5)
+    add("recover-near-adopts", FRAME_A, [7, 3], 99, last=[22.0, 32.0],
+        recover_px=60.0)
+    add("recover-swap-heals", FRAME_A, [7, 3], 3, last=[140.0, 160.0],
+        recover_px=60.0)
+    add("recover-far-falls-back", FRAME_A, [7, 3], 99, last=[500.0, 500.0],
+        recover_px=60.0)
+    add("recover-lowconf-skips", FRAME_A, [7, 3], 99, last=[22.0, 32.0],
+        min_conf=0.95, recover_px=60.0)
     return cases
 
 

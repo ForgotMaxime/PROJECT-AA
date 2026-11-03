@@ -122,8 +122,10 @@ pub fn headshot_offset(h: f64, headshot_mode: bool) -> f64 {
 
 /// ID-stable selection over parallel detection/id slices.
 /// Mirrors `aim.select_locked`: keep `locked` when present with
-/// `conf >= min_conf` (highest conf on ties), else fall back to
-/// [`select_target`] and adopt the picked row's id (-1/None = unknown).
+/// `conf >= min_conf` (highest conf on ties); with `recover_px > 0` and a
+/// last position, spatial continuity wins over the id on disagreement
+/// (tracker swaps on crossings); else fall back to [`select_target`] and
+/// adopt the picked row's id (-1/None = unknown).
 /// Returns `(target, new_lock)` with target `(x_mid, y_mid, h, tid)`.
 #[allow(clippy::too_many_arguments)]
 pub fn select_locked(
@@ -138,9 +140,33 @@ pub fn select_locked(
     fov: Option<(f64, f64)>,
     max_box_h: f64,
     min_conf: f64,
+    recover_px: f64,
 ) -> (Option<(f64, f64, f64, Option<i64>)>, Option<i64>) {
     let norm = |t: i64| if t < 0 { None } else { Some(t) };
     if let Some(lk) = locked {
+        if !dets.is_empty() {
+            if let Some((lx, ly)) = last {
+                if recover_px != 0.0 {
+                    let mut di: Option<usize> = None;
+                    let mut dd = recover_px;
+                    for (i, d) in dets.iter().enumerate() {
+                        if d.conf < min_conf {
+                            continue;
+                        }
+                        let dist = (d.mid_x() - lx).hypot(d.mid_y() - ly);
+                        if dist < dd || (di.is_none() && dist <= dd) {
+                            di = Some(i);
+                            dd = dist;
+                        }
+                    }
+                    if let Some(i) = di {
+                        let d = &dets[i];
+                        let tid = ids.get(i).copied().and_then(norm);
+                        return (Some((d.mid_x(), d.mid_y(), d.height(), tid)), tid);
+                    }
+                }
+            }
+        }
         let mut best: Option<usize> = None;
         let mut best_c = -1.0f64;
         for (i, d) in dets.iter().enumerate() {

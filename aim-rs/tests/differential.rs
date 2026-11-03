@@ -94,6 +94,8 @@ struct LockedIn {
     fov: Option<[f64; 2]>,
     max_box_h: f64,
     min_conf: f64,
+    #[serde(default)]
+    recover_px: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -205,6 +207,7 @@ fn differential_vectors() {
                     inp.fov.map(|f| (f[0], f[1])),
                     inp.max_box_h,
                     inp.min_conf,
+                    inp.recover_px,
                 );
                 let got_tgt = t.map(|(x, y, h, tid)| LockedTgt { x, y, h, tid });
                 assert_eq!(got_tgt.map(|g| (g.x, g.y, g.h, g.tid)), exp.tgt.map(|e| (e.x, e.y, e.h, e.tid)), "locked/{}/tgt", c.name);

@@ -91,17 +91,36 @@ def _norm_tid(tid):
 
 
 def select_locked(dets, ids, locked_id, cWidth, cHeight, center=True, last=None,
-                  sticky_px=80, fov=None, max_box_h=0, min_conf=0.3):
+                  sticky_px=80, fov=None, max_box_h=0, min_conf=0.3,
+                  recover_px=0):
     """ID-stable selection over dets (N,6) with parallel ids (-1/None = no id).
 
     If locked_id is present with conf >= min_conf, keep it (highest conf on ties).
-    Else fall back to select_target. Pure: mirrored by the aim-rs port.
+    With recover_px > 0 and a last position, spatial continuity wins over the
+    id on disagreement (tracker swaps on crossings): nearest conf-gated row
+    within recover_px of last is adopted. Else fall back to select_target.
+    Pure: mirrored by the aim-rs port.
     Returns ((xMid, yMid, h, tid), new_locked_id); tid None when unknown.
     """
     arr = np.asarray(dets, dtype=np.float64).reshape(-1, 6)
     ids = list(ids)
     locked_id = _norm_tid(locked_id)
     if locked_id is not None and len(arr):
+        if last is not None and recover_px:
+            lx, ly = float(last[0]), float(last[1])
+            di, dd = -1, float(recover_px)
+            for i, r in enumerate(arr):
+                if float(r[4]) < min_conf:
+                    continue
+                d = math.hypot((float(r[0]) + float(r[2])) / 2 - lx,
+                               (float(r[1]) + float(r[3])) / 2 - ly)
+                if d < dd or (di < 0 and d <= dd):
+                    di, dd = i, d
+            if di >= 0:
+                r = arr[di]
+                tid = _norm_tid(ids[di]) if di < len(ids) else None
+                return ((float((r[0] + r[2]) / 2), float((r[1] + r[3]) / 2),
+                         float(r[3] - r[1]), tid), tid)
         best, best_c = -1, -1.0
         for i, tid in enumerate(ids):
             tid = _norm_tid(tid)

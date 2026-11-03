@@ -1340,7 +1340,8 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.3
+   "min_conf": 0.3,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": {
@@ -1386,7 +1387,8 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.95
+   "min_conf": 0.95,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": {
@@ -1432,7 +1434,8 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.3
+   "min_conf": 0.3,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": {
@@ -1478,7 +1481,8 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.3
+   "min_conf": 0.3,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": {
@@ -1524,7 +1528,8 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.3
+   "min_conf": 0.3,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": {
@@ -1570,7 +1575,8 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.3
+   "min_conf": 0.3,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": {
@@ -1596,11 +1602,212 @@
    "sticky_px": 80.0,
    "fov": null,
    "max_box_h": 0.0,
-   "min_conf": 0.3
+   "min_conf": 0.3,
+   "recover_px": 0.0
   },
   "expected": {
    "tgt": null,
    "lock": null
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "recover-near-adopts",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 99,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": [
+    22.0,
+    32.0
+   ],
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3,
+   "recover_px": 60.0
+  },
+  "expected": {
+   "tgt": {
+    "x": 20.0,
+    "y": 30.0,
+    "h": 40.0,
+    "tid": 3
+   },
+   "lock": 3
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "recover-swap-heals",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 3,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": [
+    140.0,
+    160.0
+   ],
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3,
+   "recover_px": 60.0
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": 7
+   },
+   "lock": 7
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "recover-far-falls-back",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 99,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": [
+    500.0,
+    500.0
+   ],
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3,
+   "recover_px": 60.0
+  },
+  "expected": {
+   "tgt": {
+    "x": 140.0,
+    "y": 160.0,
+    "h": 120.0,
+    "tid": 7
+   },
+   "lock": 7
+  }
+ },
+ {
+  "kind": "locked",
+  "name": "recover-lowconf-skips",
+  "input": {
+   "dets": [
+    [
+     100.0,
+     100.0,
+     180.0,
+     220.0,
+     0.9,
+     0.0
+    ],
+    [
+     10.0,
+     10.0,
+     30.0,
+     50.0,
+     0.8,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 99,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": [
+    22.0,
+    32.0
+   ],
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.95,
+   "recover_px": 60.0
+  },
+  "expected": {
+   "tgt": {
+    "x": 20.0,
+    "y": 30.0,
+    "h": 40.0,
+    "tid": 3
+   },
+   "lock": 3
   }
  },
  {

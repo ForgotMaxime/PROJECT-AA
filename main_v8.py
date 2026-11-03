@@ -132,6 +132,7 @@ def main(source=None, max_ticks=0):
     tracker_yaml = _cfg("v8Tracker", "trackers/bytetrack-aim.yaml")
     track_min_conf = float(_cfg("aaTrackMinConf", 0.3))
     track_buffer = int(_cfg("aaTrackBuffer", 10))
+    recover_px = float(_cfg("aaRecoverPx", 60))
     hold_key = int(_cfg("aaHoldKey", 0x14))
     smooth = float(_cfg("aaSmooth", 1.3))
     max_step = int(_cfg("aaMaxStep", 60))
@@ -274,7 +275,7 @@ def main(source=None, max_ticks=0):
                     dets, ids, locked_id, cWidth, cHeight,
                     center=centerOfScreen, last=last_mid,
                     sticky_px=sticky_px, fov=fov, max_box_h=max_box_h,
-                    min_conf=track_min_conf)
+                    min_conf=track_min_conf, recover_px=recover_px)
                 if t4 is None:
                     lock_misses += 1
                     if lock_misses > track_buffer:

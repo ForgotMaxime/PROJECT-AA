@@ -52,6 +52,9 @@ v8Track = True
 v8Tracker = "trackers/bytetrack-aim.yaml"
 aaTrackMinConf = 0.3
 aaTrackBuffer = 10
+# Spatial-continuity radius: nearest target within this of last pos wins over
+# the tracked ID on disagreement (heals ByteTrack swaps on crossings). 0 = off.
+aaRecoverPx = 60
 
 # Mouse backend for main_v8.py: "sendinput" (default), "win32" (legacy) or "makcu"
 aaMouseBackend = "makcu"
