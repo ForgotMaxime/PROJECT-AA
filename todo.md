@@ -16,7 +16,7 @@
 
 ## À faire
 - [x] Threading capture / inférence / souris (files drop-stale) — smoke test `tools/smoke_threads.py` vert
-- [ ] ORT CUDA : `onnxruntime-gpu[cuda,cudnn]` + `preload_dlls`, vérifier `get_providers`
+- [x] ORT CUDA (`onnxruntime-gpu[cuda,cudnn]` + `preload_dlls`, provider vérifié) — défaut `yolo11s.onnx` ~13ms vs `.pt` ~22ms
 - [ ] Build engine TensorRT FP16 320 (wheel cp314 ? sinon venv 3.11/3.12 pour builder)
 - [ ] Mesure specialistion : ID switches/min en crossing, RMSE strafe vs saut (frames enregistrées)
 - [ ] OC-SORT (`inertia` 0.3) si les sauts dominent l'erreur restante

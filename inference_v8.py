@@ -5,11 +5,9 @@ place. `.onnx` runs through ONNX Runtime (CUDAExecutionProvider when
 device=0, else CPU). `.engine` (TensorRT) also loads via `YOLO()` when
 TensorRT is installed; building needs `python export_v8.py <model> 320 engine`.
 
-Note: onnxruntime-gpu >=1.30 needs CUDA 13 + cuDNN 9 for GPU ORT. Without
-them it falls back to CPU (~250ms/320px). Default `v8Model=yolo11s.pt`
-uses torch CUDA12 FP32: FP16 paths (`half` flag / `model.half()`) were
-measured ~equal on batch=1 RTX 3060, so FP32 stays (also avoids a
-per-call deprecation warning in ultralytics 8.4).
+Note: onnxruntime-gpu >=1.30 needs CUDA 13 + cuDNN 9 for GPU ORT, loaded in
+__init__ via ort.preload_dlls(). Without those DLLs it warns and falls back
+to CPU (~240ms/320px).
 """
 import numpy as np
 
@@ -23,6 +21,14 @@ class V8Detector:
         self.iou = float(iou)
         self.device = device
         self.tracker = tracker
+        if str(model).endswith((".onnx", ".engine")):
+            # Lets ORT find the pip-installed CUDA13/cuDNN9 DLLs; without this
+            # it falls back to CPU even when the provider build exists.
+            try:
+                import onnxruntime as _ort
+                _ort.preload_dlls()
+            except Exception:
+                pass
         try:
             import torch
             torch.backends.cudnn.benchmark = True

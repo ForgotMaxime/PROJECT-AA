@@ -7,7 +7,7 @@ Engine (needs NVIDIA TensorRT installed):
 import sys
 
 
-def main(model="yolov8s.pt", imgsz=320, fmt="onnx"):
+def main(model="yolo11s.pt", imgsz=320, fmt="onnx"):
     from ultralytics import YOLO
     m = YOLO(model)
     fmt = str(fmt).lower()
@@ -28,6 +28,6 @@ def main(model="yolov8s.pt", imgsz=320, fmt="onnx"):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "yolov8s.pt",
+    main(sys.argv[1] if len(sys.argv) > 1 else "yolo11s.pt",
          int(sys.argv[2]) if len(sys.argv) > 2 else 320,
          sys.argv[3] if len(sys.argv) > 3 else "onnx")
