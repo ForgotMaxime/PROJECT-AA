@@ -22,7 +22,7 @@
 - [ ] OC-SORT (`inertia` 0.3) si les sauts dominent l'erreur restante
 - [ ] Filtre 1€ sur la mesure si jitter résiduel à l'arrêt (seuil : std > 2px)
 - [ ] ReID BoT-SORT seulement si swaps en multi-cible dominent
-- [ ] Test live MAKCU (backend codé + vérifié loopback, jamais testé sur hardware)
+- [x] Test live MAKCU (COM4 @4M, carré OK) — backend `makcu` actif par défaut
 
 ## Écarté
 - [ ] ~~SAHI temps réel, RT-DETR, `best.onnx` YOLOv5~~ — trop lent / mort

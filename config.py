@@ -49,11 +49,11 @@ aaTrackMinConf = 0.3
 aaTrackBuffer = 10
 
 # Mouse backend for main_v8.py: "sendinput" (default), "win32" (legacy) or "makcu"
-aaMouseBackend = "sendinput"
+aaMouseBackend = "makcu"
 
 # MAKCU serial bridge (only used when aaMouseBackend = "makcu")
-aaMakcuPort = "COM3"
-aaMakcuBaud = 115200
+aaMakcuPort = "COM4"
+aaMakcuBaud = 4000000
 
 # Aim feel (main_v8.py): smooth divisor, per-tick clamp, deadzone, jitter
 aaSmooth = 1.3
