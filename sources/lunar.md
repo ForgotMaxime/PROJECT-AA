@@ -9,6 +9,17 @@
   → notre `aim.reject_own` (`aaOwnReject`, côtés configurables).
 - Offset tête `h/2.7` ≈ nos bins 0.38 — nos chiffres tiennent.
 
-## À prendre
-- Rien d'autre (PyTorch Hub YOLOv5, mss, Windows-only : dépassé).
-- Idée process : collecte auto de frames en jeu pour dataset (ils le font).
+## Idées lues (non reprises en l'état)
+- **Mouvements interpolés pixel-par-pixel** (`interpolate_coordinates_from_center`,
+  diffusion d'erreur + busy-sleep précis) : l'équivalent moderne côté MAKCU,
+  c'est les segments/Bézier natifs `km.move(dx,dy,seg,...)` → voir todo.
+- **Calibration sensibilité** (`setup()` : `xy_scale = 10/xy_sens`) : notre
+  `aaMovementAmp` joue déjà ce rôle empiriquement, pas de knob en plus.
+- **Mode collecte dataset** (`collect_data`, exclut les frames own-player) :
+  équivalent à nos raws `diag_capture.py` pour un futur fine-tune.
+- État `LOCKED` ±5px : indicateur, pas de logique — nos visuals suffisent.
+
+## Dépassé, à ne pas reprendre
+- Stack 2022 : torch 1.11+cu113, `torch.hub` YOLOv5, capture `mss`,
+  `best.pt` Fortnite d'époque (même famille que notre `best.onnx` mort).
+- `pygame`/`pynput`/`termcolor` : remplacés chez nous (cv2, win32api, DearPyGui).
