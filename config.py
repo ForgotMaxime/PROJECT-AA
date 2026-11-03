@@ -72,7 +72,7 @@ aaDzExit = 1.0
 
 # Target prediction (Kalman CV + lead). Off = aim at raw midpoint.
 aaPredict = True
-aaLeadT = 0.05
+aaLeadT = 0.03
 aaLeadMax = 30.0
 aaGatePx = 60.0
 aaKalmanQX = 4e6
