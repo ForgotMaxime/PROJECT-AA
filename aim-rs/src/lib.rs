@@ -288,6 +288,284 @@ pub fn speed_curve(
     smin + (smax - smin) * (1.0 - (1.0 - t).powf(exp))
 }
 
+/// IoU of two `(x, y, w, h)` boxes. Mirrors `aim.mini_iou`.
+pub fn mini_iou(a: [f64; 4], b: [f64; 4]) -> f64 {
+    let x1 = a[0].max(b[0]);
+    let y1 = a[1].max(b[1]);
+    let x2 = (a[0] + a[2]).min(b[0] + b[2]);
+    let y2 = (a[1] + a[3]).min(b[1] + b[3]);
+    let w = (x2 - x1).max(0.0);
+    let h = (y2 - y1).max(0.0);
+    let inter = w * h;
+    let ua = a[2] * a[3] + b[2] * b[3] - inter;
+    if ua <= 1e-6 {
+        return 0.0;
+    }
+    inter / ua
+}
+
+/// One MiniTrack row: `x1, y1, x2, y2, conf, cls` in pixels.
+#[derive(Debug, Clone, Copy)]
+pub struct MiniDet {
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub conf: f64,
+    pub cls: f64,
+}
+
+#[derive(Debug, Clone)]
+struct MiniState {
+    id: i64,
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+    px: f64,
+    py: f64,
+    vx: f64,
+    vy: f64,
+    cls: i64,
+    conf: f64,
+    hits: i64,
+    missed: i64,
+    last: f64,
+}
+
+/// SunOne-style multi-target tracker. Mirrors `aim.MiniTrack` field for
+/// field (velocity-predicted greedy association, locked privileges).
+/// Time `t` is explicit (no wall clock): deterministic and vector-tested.
+#[derive(Debug, Clone)]
+pub struct MiniTracker {
+    tracks: Vec<MiniState>,
+    next_id: i64,
+    locked: Option<i64>,
+    frame_w: f64,
+    frame_h: f64,
+    max_missed: i64,
+    class_player: i64,
+    last_ids: Vec<i64>,
+}
+
+impl MiniTracker {
+    pub fn new(class_player: i64, max_missed: i64) -> Self {
+        Self {
+            tracks: Vec::new(),
+            next_id: 1,
+            locked: None,
+            frame_w: 320.0,
+            frame_h: 320.0,
+            max_missed,
+            class_player,
+            last_ids: Vec::new(),
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.tracks.clear();
+        self.next_id = 1;
+        self.locked = None;
+        self.last_ids.clear();
+    }
+
+    pub fn locked_id(&self) -> Option<i64> {
+        self.locked
+    }
+
+    pub fn last_ids(&self) -> Vec<i64> {
+        self.last_ids.clone()
+    }
+
+    fn allowed(&self, id: i64) -> i64 {
+        self.max_missed + if Some(id) == self.locked { 8 } else { 0 }
+    }
+
+    fn match_cost(&self, t: &MiniState, bx: f64, by: f64, bw: f64, bh: f64,
+                  cls: i64, px: f64, py: f64, now: f64) -> Option<f64> {
+        if cls != t.cls {
+            return None;
+        }
+        let dt = (now - t.last).clamp(1e-4, 0.25);
+        let pred_cx = t.x + t.w * 0.5 + t.vx * dt;
+        let pred_cy = t.y + t.h * 0.5 + t.vy * dt;
+        let pred = [pred_cx - t.w * 0.5, pred_cy - t.h * 0.5, t.w, t.h];
+        let det_cx = bx + bw * 0.5;
+        let det_cy = by + bh * 0.5;
+        let box_dist = (det_cx - pred_cx).hypot(det_cy - pred_cy);
+        let pred_px = t.px + t.vx * dt;
+        let pred_py = t.py + t.vy * dt;
+        let pivot_dist = (px - pred_px).hypot(py - pred_py);
+        let dist = box_dist.min(pivot_dist);
+        let diag = t.w.hypot(t.h);
+        let speed = t.vx.hypot(t.vy);
+        let mut max_dist = 24.0f64.max(diag * 1.15 + 10.0)
+            + speed * dt * (1.8 + t.missed as f64 * 0.35)
+            + t.missed as f64 * 14.0f64.max(diag * 0.18);
+        if Some(t.id) == self.locked {
+            max_dist *= 1.6;
+        }
+        if dist > max_dist {
+            return None;
+        }
+        let overlap = mini_iou(pred, [bx, by, bw, bh]);
+        let cost = dist / max_dist + (1.0 - overlap) * 0.30
+            + t.missed as f64 * 0.025 - t.hits.min(6) as f64 * 0.01
+            - if Some(t.id) == self.locked { 0.10 } else { 0.0 };
+        Some(cost)
+    }
+
+    /// Associate detections at time `t`. `last_ids` ends input-aligned.
+    pub fn update(&mut self, dets: &[MiniDet], t: f64, keep_lock: bool,
+                  frame_w: f64, frame_h: f64) {
+        self.frame_w = frame_w;
+        self.frame_h = frame_h;
+        struct Filt {
+            input: usize,
+            x: f64, y: f64, w: f64, h: f64,
+            cls: i64, conf: f64, px: f64, py: f64,
+        }
+        let mut filts: Vec<Filt> = Vec::new();
+        for (ii, d) in dets.iter().enumerate() {
+            if d.cls as i64 != self.class_player || d.x2 <= d.x1 || d.y2 <= d.y1 {
+                continue;
+            }
+            let w = d.x2 - d.x1;
+            let h = d.y2 - d.y1;
+            filts.push(Filt {
+                input: ii, x: d.x1, y: d.y1, w, h,
+                cls: d.cls as i64, conf: d.conf,
+                px: d.x1 + w * 0.5, py: d.y1 + h * 0.5,
+            });
+        }
+        // Greedy assignment by (cost, track, det).
+        let mut cands: Vec<(f64, usize, usize)> = Vec::new();
+        for (ti, tr) in self.tracks.iter().enumerate() {
+            for (di, f) in filts.iter().enumerate() {
+                if let Some(c) = self.match_cost(tr, f.x, f.y, f.w, f.h,
+                                                 f.cls, f.px, f.py, t) {
+                    if c < 2.0 {
+                        cands.push((c, ti, di));
+                    }
+                }
+            }
+        }
+        cands.sort_by(|a, b| {
+            a.0.partial_cmp(&b.0).unwrap()
+                .then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2))
+        });
+        let mut track_hit = vec![-1i64; self.tracks.len()];
+        let mut det_hit = vec![-1i64; filts.len()];
+        for (_, ti, di) in &cands {
+            if track_hit[*ti] < 0 && det_hit[*di] < 0 {
+                track_hit[*ti] = *di as i64;
+                det_hit[*di] = *ti as i64;
+            }
+        }
+        let vmax = self.frame_w.max(self.frame_h) * 3.5;
+        for (ti, tr) in self.tracks.iter_mut().enumerate() {
+            let di = track_hit[ti];
+            if di >= 0 {
+                let f = &filts[di as usize];
+                let dt = (t - tr.last).clamp(1e-4, 0.2);
+                let mut rvx = (f.px - tr.px) / dt;
+                let mut rvy = (f.py - tr.py) / dt;
+                let spd = rvx.hypot(rvy);
+                if spd > vmax && spd > 1e-4 {
+                    let k = vmax / spd;
+                    rvx *= k;
+                    rvy *= k;
+                }
+                let blend = if Some(tr.id) == self.locked { 0.45 } else { 0.35 };
+                tr.vx = tr.vx * (1.0 - blend) + rvx * blend;
+                tr.vy = tr.vy * (1.0 - blend) + rvy * blend;
+                tr.x = f.x;
+                tr.y = f.y;
+                tr.w = f.w;
+                tr.h = f.h;
+                tr.px = f.px;
+                tr.py = f.py;
+                tr.cls = f.cls;
+                tr.conf = f.conf;
+                tr.hits += 1;
+                tr.missed = 0;
+                tr.last = t;
+            } else {
+                let dt = (t - tr.last).clamp(0.0, 0.2);
+                tr.x += tr.vx * dt;
+                tr.y += tr.vy * dt;
+                tr.px += tr.vx * dt;
+                tr.py += tr.vy * dt;
+                let decay = if Some(tr.id) == self.locked { 0.90 } else { 0.84 };
+                tr.vx *= decay;
+                tr.vy *= decay;
+                tr.missed += 1;
+                tr.last = t;
+            }
+        }
+        self.last_ids = vec![-1; dets.len()];
+        for (di, f) in filts.iter().enumerate() {
+            let ti = det_hit[di];
+            let fid = if ti >= 0 {
+                self.tracks[ti as usize].id
+            } else {
+                let nid = self.next_id;
+                self.next_id += 1;
+                self.tracks.push(MiniState {
+                    id: nid, x: f.x, y: f.y, w: f.w, h: f.h,
+                    px: f.px, py: f.py, vx: 0.0, vy: 0.0,
+                    cls: f.cls, conf: f.conf, hits: 1, missed: 0, last: t,
+                });
+                nid
+            };
+            self.last_ids[f.input] = fid;
+        }
+        let allowed: Vec<i64> = self.tracks.iter().map(|tr| self.allowed(tr.id)).collect();
+        let mut kept = Vec::new();
+        for (tr, a) in self.tracks.drain(..).zip(allowed.iter()) {
+            if tr.missed <= *a {
+                kept.push(tr);
+            }
+        }
+        self.tracks = kept;
+        if !self.tracks.iter().any(|tr| Some(tr.id) == self.locked) {
+            self.locked = None;
+        }
+        if !keep_lock || self.locked.is_none() {
+            let cx = self.frame_w * 0.5;
+            let cy = self.frame_h * 0.5;
+            let mut best: Option<usize> = None;
+            let mut best_s = f64::INFINITY;
+            for (ti, tr) in self.tracks.iter().enumerate() {
+                if tr.missed > self.allowed(tr.id) {
+                    continue;
+                }
+                let s = (tr.px - cx).hypot(tr.py - cy)
+                    + tr.missed as f64 * 50.0 - tr.hits.min(5) as f64 * 4.0;
+                if s < best_s {
+                    best_s = s;
+                    best = Some(ti);
+                }
+            }
+            self.locked = best.map(|ti| self.tracks[ti].id);
+        }
+    }
+
+    /// Returns `(x_mid, y_mid, h, tid, observed, missed, vx, vy)` or `None`.
+    pub fn get_locked(&self) -> Option<(f64, f64, f64, i64, bool, i64, f64, f64)> {
+        for tr in &self.tracks {
+            if Some(tr.id) == self.locked {
+                if tr.missed > self.allowed(tr.id) {
+                    return None;
+                }
+                return Some((tr.x + tr.w * 0.5, tr.y + tr.h * 0.5, tr.h,
+                             tr.id, tr.missed == 0, tr.missed, tr.vx, tr.vy));
+            }
+        }
+        None
+    }
+}
+
 /// CPython `round()` semantics: round-half-to-even.
 fn round_half_even(x: f64) -> f64 {
     let f = x.floor();

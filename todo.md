@@ -19,9 +19,10 @@
 - [x] ORT CUDA (`onnxruntime-gpu[cuda,cudnn]` + `preload_dlls`, provider vérifié) — `yolo11s.onnx` ~18ms vs `.pt` ~27ms
 - [x] Engine TensorRT FP16 320 (`yolo11s.engine`, TRT 11.4 + modelopt chain) — ~8ms end-to-end, défaut actuel
 - [x] Mesure : `tools/diag_capture.py --track` (raws + track.jsonl) + `tools/measure_tracks.py` (switches/jitter/rate, rejouable par tracker) — A/B bytetrack vs ocsort outillé, verdict sur vraies séquences en attente
-- [ ] OC-SORT (`inertia` 0.3) si les sauts dominent l'erreur restante
+- [x] MiniTrack (`aim.MiniTrack`, miroir SunOne `AimbotTarget.cpp`, défaut `v8Tracker`) : association prédite-vélocité + privilèges lock — lock tenu au crossing synthétique, 102 vecteurs Rust verts ; A/B seq_ab non discriminante (1 cible), validation live en attente
+- [ ] ~~OC-SORT (`inertia` 0.3) si les sauts dominent l'erreur restante~~ — écarté : MiniTrack couvre le besoin (association prédite)
 - [ ] Filtre 1€ sur la mesure si jitter résiduel à l'arrêt (seuil : std > 2px)
-- [ ] ReID BoT-SORT seulement si swaps en multi-cible dominent
+- [ ] ~~ReID BoT-SORT seulement si swaps en multi-cible dominent~~ — écarté : MiniTrack couvre le besoin
 - [x] Test live MAKCU (COM4 @4M, carré OK) — backend `makcu` actif par défaut
 
 ## Écart techno (état des lieux, réf SunOne v2 `sources/sunone_aimbot_2/docs/config.md`)

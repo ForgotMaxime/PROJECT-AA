@@ -5,7 +5,7 @@
 //! identical IEEE-754 op order on both sides, so coordinates compare exactly;
 //! only pre-sorted, clear-margin orderings are used (no near-ties).
 
-use aim_rs::{aim_step, fov_to_counts, headshot_offset, reject_own, select_locked, select_target, smooth_move, speed_curve, Det, Kalman2D};
+use aim_rs::{aim_step, fov_to_counts, headshot_offset, mini_iou, reject_own, select_locked, select_target, smooth_move, speed_curve, Det, Kalman2D, MiniDet, MiniTracker};
 use serde::Deserialize;
 
 const VECTORS: &str = include_str!("vectors/vectors.json");
@@ -145,6 +145,27 @@ struct SpeedIn {
     smin: f64,
     smax: f64,
     exp: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct IouIn {
+    a: [f64; 4],
+    b: [f64; 4],
+}
+
+#[derive(Debug, Deserialize)]
+struct MiniIn {
+    frames: Vec<Vec<[f64; 6]>>,
+    dt: f64,
+    w: f64,
+    h: f64,
+    keep_lock: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct MiniExp {
+    locks: Vec<Option<i64>>,
+    ids: Vec<Vec<i64>>,
 }
 
 fn to_dets(rows: &[[f64; 6]]) -> Vec<Det> {
@@ -295,6 +316,30 @@ fn differential_vectors() {
                     inp.smin, inp.smax, inp.exp,
                 );
                 assert_eq!(got, exp, "speed/{}", c.name);
+            }
+            "iou" => {
+                let inp: IouIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: f64 = serde_json::from_value(c.expected.clone()).unwrap();
+                let got = mini_iou(inp.a, inp.b);
+                assert_eq!(got, exp, "iou/{}", c.name);
+            }
+            "mini" => {
+                let inp: MiniIn = serde_json::from_value(c.input.clone()).unwrap();
+                let exp: MiniExp = serde_json::from_value(c.expected.clone()).unwrap();
+                let mut mt = MiniTracker::new(0, 6);
+                let mut locks = Vec::new();
+                let mut ids = Vec::new();
+                for (i, frame) in inp.frames.iter().enumerate() {
+                    let dets: Vec<MiniDet> = frame.iter().map(|r| MiniDet {
+                        x1: r[0], y1: r[1], x2: r[2], y2: r[3],
+                        conf: r[4], cls: r[5],
+                    }).collect();
+                    mt.update(&dets, i as f64 * inp.dt, inp.keep_lock, inp.w, inp.h);
+                    locks.push(mt.locked_id());
+                    ids.push(mt.last_ids());
+                }
+                assert_eq!(locks, exp.locks, "mini/{}/locks", c.name);
+                assert_eq!(ids, exp.ids, "mini/{}/ids", c.name);
             }
             other => panic!("unknown vector kind: {other}"),
         }

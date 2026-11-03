@@ -43,7 +43,7 @@ Full original 12-step guide removed as outdated; expect adaptation for CUDA 12 /
 
 ```powershell
 cd "PROJECT AA"
-python main_v8.py        # live (TensorRT engine + ByteTrack + Kalman)
+python main_v8.py        # live (TensorRT engine + MiniTrack + Kalman)
 python main_v8.py --window Fortnite   # select by title, no index race
 python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 ```
@@ -60,7 +60,7 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
   build deps `nvidia-modelopt onnx-graphsurgeon onnxscript lief polygraphy`;
   ~4 min build, GPU-specific file). Fallbacks: `weights/yolo11s.onnx` then `weights/yolo11s.pt`.
 - TensorRT: `python export_v8.py weights/yolo11s.pt 320 engine` needs the TensorRT 10.x python package (not installed here); `inference_v8.py`/`main_v8.py` already accept `v8Model = "weights/yolo11s.engine"`.
-- Tracking: `v8Track` (ByteTrack IDs via `trackers/bytetrack-aim.yaml`, `persist=True`) + `select_locked` ID lock in `aim.py` (`aaTrackMinConf`, `aaTrackBuffer`, `aaRecoverPx` spatial continuity over ID on disagreement); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer. `aaLockHold` ticks of coast-aim on the locked prediction before switching targets. `aaMonoTarget`: one active target while CAPS is held (hold, then committed switch — never idle); release + press to re-acquire.
+- Tracking: `v8Tracker = "minitrack"` (default, SunOne-style `aim.MiniTrack`: velocity-predicted greedy association + locked privileges gate x1.6 / +8 misses, `aaMiniMissed`) or ByteTrack yaml via `select_locked` (`aaTrackMinConf`, `aaTrackBuffer`, `aaRecoverPx`); falls back to detect-only if the tracker fails. State: `locked_id` + miss counter, unlock past buffer. `aaLockHold` ticks of coast-aim on the locked prediction before switching targets. `aaMonoTarget`: one active target while CAPS is held (hold, then committed switch — never idle); release + press to re-acquire.
 - Config (`config.py`): `v8Model` (`weights/yolo11s.engine`), `v8Imgsz` (320), `v8Conf` (0.25), `v8Iou` (0.5), `v8Device` (0=cuda:0, `"cpu"`=CPU, `"auto"`), `aaMouseBackend` (`makcu` live, `sendinput`, `win32` legacy).
 - Mouse (`mouse.py`): `sendinput` avoids the `mouse_event` hook path flagged by EQU8; still user-mode, not a driver.
 - MAKCU: `config.py:aaMouseBackend = "makcu"`, `aaMakcuPort` (`"COM4"` here), `aaMakcuBaud` (4000000 here; 115200 stock, toggle: press its button 4x in 2s). Sends `km.move(dx,dy)\r` per tick, zero moves skipped, handle closed on exit. Needs CH343 driver + AIO/test tool closed. Verified live (square test + in-game smooth).
@@ -95,7 +95,7 @@ python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 ## Rust port + differential testing (`aim-rs/`)
 
 - `aim-rs/src/lib.rs`: port of `aim.py` (`select_target`, `smooth_move`, full-tick `aim_step`). Banker's rounding replicated to match CPython `round()`; jitter uses an explicit seeded xorshift stream (different from CPython's MT by design — deterministic core tested differentially, jitter via contract test).
-- Harness 1 (unit): `tools/dump_vectors.py` generates 81 vectors from `aim.py` into `aim-rs/tests/vectors/vectors.json`; `cargo test` replays them with exact comparison.
+- Harness 1 (unit): `tools/dump_vectors.py` generates 102 vectors from `aim.py` into `aim-rs/tests/vectors/vectors.json`; `cargo test` replays them with exact comparison.
 - Harness 2 (integration): `chain/*` vectors cover the full `dets -> dx/dy` tick (select + headshot offset + amp + smooth), mirroring `main_v8.py`.
 - Regen + test: `python tools/dump_vectors.py` then `cargo test --manifest-path aim-rs/Cargo.toml`.
 

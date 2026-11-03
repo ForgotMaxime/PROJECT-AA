@@ -146,6 +146,64 @@ def speed_cases():
     return cases
 
 
+def iou_cases():
+    from aim import mini_iou
+    cases = []
+
+    def add(name, a, b):
+        cases.append({"kind": "iou", "name": name,
+                      "input": {"a": list(a), "b": list(b)},
+                      "expected": mini_iou(a, b)})
+
+    add("identical", [10.0, 10.0, 40.0, 80.0], [10.0, 10.0, 40.0, 80.0])
+    add("half-overlap", [10.0, 10.0, 40.0, 80.0], [30.0, 10.0, 40.0, 80.0])
+    add("disjoint", [10.0, 10.0, 40.0, 80.0], [100.0, 100.0, 40.0, 80.0])
+    add("contained", [10.0, 10.0, 100.0, 100.0], [30.0, 30.0, 20.0, 20.0])
+    add("touching", [10.0, 10.0, 40.0, 80.0], [50.0, 10.0, 40.0, 80.0])
+    return cases
+
+
+def mini_cases():
+    from aim import MiniTrack
+    cases = []
+
+    def run(name, frames, dt=1 / 30.0, w=320.0, h=320.0, keep_lock=True):
+        import numpy as np
+        mt = MiniTrack()
+        locks, ids = [], []
+        for i, dets in enumerate(frames):
+            arr = np.array(dets, dtype=np.float64).reshape(-1, 6)
+            mt.update(arr, t=i * dt, keep_lock=keep_lock,
+                      frame_w=w, frame_h=h)
+            lk = mt.get_locked()
+            locks.append(lk[3] if lk else None)
+            ids.append(list(mt.last_ids))
+        cases.append({"kind": "mini", "name": name,
+                      "input": {"frames": frames, "dt": dt, "w": w, "h": h,
+                                "keep_lock": keep_lock},
+                      "expected": {"locks": locks, "ids": ids}})
+
+    def box(cx, cy, w=40.0, h=80.0, conf=0.9, cls=0.0):
+        return [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, conf, cls]
+
+    # Straight crossing: A left->right, B right->left, exact overlap at f4.
+    cross = [[box(40.0 + i * 30.0, 160.0), box(280.0 - i * 30.0, 160.0)]
+             for i in range(9)]
+    run("cross-keeps-lock", cross)
+    # Same but the tracker may re-pick every frame (keep_lock=False).
+    run("cross-repick", cross, keep_lock=False)
+    # Occlusion: B vanishes f3..f5, returns; lock must survive on A.
+    occ = [[box(100.0, 160.0), box(220.0, 160.0)] for _ in range(3)]
+    occ += [[box(100.0 + i * 5.0, 160.0)] for i in range(3)]
+    occ += [[box(115.0 + i * 5.0, 160.0), box(220.0, 160.0)] for i in range(3)]
+    run("occlusion-survives", occ)
+    # Non-person decoy (cls 2) is filtered, never tracked.
+    dec = [[box(100.0, 160.0), box(200.0, 160.0, conf=0.8, cls=2.0)]
+           for _ in range(3)]
+    run("decoy-filtered", dec)
+    return cases
+
+
 def klead_cases():
     from aim import Kalman2D
     cases = []
@@ -292,7 +350,7 @@ def chain_cases():
 def main():
     vectors = (select_cases() + smooth_cases() + offset_cases()
                + klead_cases() + own_cases() + locked_cases() + chain_cases()
-               + fov_cases() + speed_cases())
+               + fov_cases() + speed_cases() + iou_cases() + mini_cases())
     out = ROOT / "aim-rs" / "tests" / "vectors" / "vectors.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(vectors, indent=1) + "\n", encoding="utf-8")

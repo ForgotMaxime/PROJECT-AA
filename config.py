@@ -81,7 +81,11 @@ v8Device = 0
 
 # ByteTrack ID lock (main_v8.py). Off = sticky heuristic only.
 v8Track = True
-v8Tracker = "trackers/bytetrack-aim.yaml"
+# "minitrack" (default, SunOne-style velocity-predicted association) or an
+# ultralytics tracker yaml (e.g. "trackers/bytetrack-aim.yaml").
+v8Tracker = "minitrack"
+# Missed frames before a MiniTrack dies (+8 bonus for the locked track).
+aaMiniMissed = 6
 aaTrackMinConf = 0.3
 aaTrackBuffer = 10
 # Spatial-continuity radius: nearest target within this of last pos wins over

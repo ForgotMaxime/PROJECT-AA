@@ -355,3 +355,204 @@ def reject_own(dets, frame_w, frame_h, edge_px=15, corner=True, sides=("left",))
                             and y2 > frame_h * 0.8)):
             keep[i] = False
     return keep
+
+
+def mini_iou(a, b):
+    """IoU of two (x, y, w, h) boxes. Pure: mirrored by the aim-rs port."""
+    ax, ay, aw, ah = (float(a[0]), float(a[1]), float(a[2]), float(a[3]))
+    bx, by, bw, bh = (float(b[0]), float(b[1]), float(b[2]), float(b[3]))
+    x1 = max(ax, bx)
+    y1 = max(ay, by)
+    x2 = min(ax + aw, bx + bw)
+    y2 = min(ay + ah, by + bh)
+    w = max(0.0, x2 - x1)
+    h = max(0.0, y2 - y1)
+    inter = w * h
+    ua = aw * ah + bw * bh - inter
+    if ua <= 1e-6:
+        return 0.0
+    return inter / ua
+
+
+class MiniTrack:
+    """SunOne-style multi-target tracker (mirror of `AimbotTarget.cpp`).
+
+    - Association on VELOCITY-PREDICTED boxes/pivots (not instant IoU like
+      ByteTrack), so identity survives crossings and fast motion.
+    - The locked track gets privileges: gate x1.6, +8 missed frames, slower
+      velocity decay, match-score bonus.
+    - Greedy assignment by ascending cost instead of Hungarian (deviation:
+      equivalent for the few boxes per frame we see; deterministic order
+      (cost, track, det) mirrored by the aim-rs port).
+    - Explicit float time `t` (no wall clock): deterministic, vector-tested.
+    - Deviation: their frameDtMean `now`-rewrite on invalid dt is skipped
+      (all dts are clamped anyway, same effect).
+
+    Dets: (N,6) x1,y1,x2,y2,conf,cls. Only cls == class_player is tracked.
+    """
+
+    _UNASSIGNED = 2.0
+
+    def __init__(self, class_player=0, max_missed=6):
+        self.class_player = int(class_player)
+        self.max_missed = int(max_missed)
+        self.tracks = []
+        self.next_id = 1
+        self.locked = None
+        self.frame_w = 320.0
+        self.frame_h = 320.0
+        self.last_ids = []
+
+    def reset(self):
+        self.tracks = []
+        self.next_id = 1
+        self.locked = None
+        self.last_ids = []
+
+    def _allowed(self, t):
+        return self.max_missed + (8 if t["id"] == self.locked else 0)
+
+    def _match_cost(self, t, box, cls, px, py, now):
+        if int(cls) != int(t["cls"]):
+            return None
+        dt = min(0.25, max(1e-4, float(now) - float(t["last"])))
+        pred_cx = t["box"][0] + t["box"][2] * 0.5 + t["vx"] * dt
+        pred_cy = t["box"][1] + t["box"][3] * 0.5 + t["vy"] * dt
+        pred = [pred_cx - t["box"][2] * 0.5, pred_cy - t["box"][3] * 0.5,
+                t["box"][2], t["box"][3]]
+        det_cx = box[0] + box[2] * 0.5
+        det_cy = box[1] + box[3] * 0.5
+        box_dist = math.hypot(det_cx - pred_cx, det_cy - pred_cy)
+        pred_px = t["pivot"][0] + t["vx"] * dt
+        pred_py = t["pivot"][1] + t["vy"] * dt
+        pivot_dist = math.hypot(float(px) - pred_px, float(py) - pred_py)
+        dist = min(box_dist, pivot_dist)
+        diag = math.hypot(t["box"][2], t["box"][3])
+        speed = math.hypot(t["vx"], t["vy"])
+        max_dist = (max(24.0, diag * 1.15 + 10.0)
+                    + speed * dt * (1.8 + t["missed"] * 0.35)
+                    + t["missed"] * max(14.0, diag * 0.18))
+        if t["id"] == self.locked:
+            max_dist = max_dist * 1.6
+        if dist > max_dist:
+            return None
+        overlap = mini_iou(pred, box)
+        cost = ((dist / max_dist) + (1.0 - overlap) * 0.30
+                + t["missed"] * 0.025 - min(6, t["hits"]) * 0.01
+                - (0.10 if t["id"] == self.locked else 0.0))
+        return cost
+
+    def update(self, dets, t, keep_lock=True, frame_w=320.0, frame_h=320.0):
+        """Associate dets at time `t`, coast misses, (re)acquire the lock.
+
+        `last_ids` is input-aligned (one id per input det, -1 when filtered
+        or untracked).
+        """
+        self.frame_w, self.frame_h = float(frame_w), float(frame_h)
+        arr = np.asarray(dets, dtype=np.float64).reshape(-1, 6)
+        boxes, clses, confs = [], [], []
+        filt_of_input = []
+        for ii, r in enumerate(arr):
+            if int(r[5]) != self.class_player or r[2] <= r[0] or r[3] <= r[1]:
+                filt_of_input.append(-1)
+                continue
+            filt_of_input.append(len(boxes))
+            w, h = float(r[2] - r[0]), float(r[3] - r[1])
+            boxes.append([float(r[0]), float(r[1]), w, h])
+            clses.append(int(r[5]))
+            confs.append(float(r[4]))
+        pivots = [(b[0] + b[2] * 0.5, b[1] + b[3] * 0.5) for b in boxes]
+
+        cands = []
+        for ti, tr in enumerate(self.tracks):
+            for di in range(len(boxes)):
+                c = self._match_cost(tr, boxes[di], clses[di],
+                                     pivots[di][0], pivots[di][1], t)
+                if c is not None and c < self._UNASSIGNED:
+                    cands.append((c, ti, di))
+        cands.sort(key=lambda e: (e[0], e[1], e[2]))
+        track_hit = [-1] * len(self.tracks)
+        det_hit = [-1] * len(boxes)
+        for c, ti, di in cands:
+            if track_hit[ti] < 0 and det_hit[di] < 0:
+                track_hit[ti] = di
+                det_hit[di] = ti
+
+        vmax = max(self.frame_w, self.frame_h) * 3.5
+        for ti, tr in enumerate(self.tracks):
+            di = track_hit[ti]
+            if di >= 0:
+                dt = min(0.2, max(1e-4, float(t) - float(tr["last"])))
+                rvx = (pivots[di][0] - tr["pivot"][0]) / dt
+                rvy = (pivots[di][1] - tr["pivot"][1]) / dt
+                spd = math.hypot(rvx, rvy)
+                if spd > vmax and spd > 1e-4:
+                    k = vmax / spd
+                    rvx, rvy = rvx * k, rvy * k
+                blend = 0.45 if tr["id"] == self.locked else 0.35
+                tr["vx"] = tr["vx"] * (1.0 - blend) + rvx * blend
+                tr["vy"] = tr["vy"] * (1.0 - blend) + rvy * blend
+                tr["box"] = boxes[di]
+                tr["pivot"] = [pivots[di][0], pivots[di][1]]
+                tr["cls"] = clses[di]
+                tr["conf"] = confs[di]
+                tr["hits"] += 1
+                tr["missed"] = 0
+                tr["last"] = float(t)
+            else:
+                dt = min(0.2, max(0.0, float(t) - float(tr["last"])))
+                tr["box"][0] += tr["vx"] * dt
+                tr["box"][1] += tr["vy"] * dt
+                tr["pivot"][0] += tr["vx"] * dt
+                tr["pivot"][1] += tr["vy"] * dt
+                decay = 0.90 if tr["id"] == self.locked else 0.84
+                tr["vx"] *= decay
+                tr["vy"] *= decay
+                tr["missed"] += 1
+                tr["last"] = float(t)
+
+        self.last_ids = [-1] * len(arr)
+        for di in range(len(boxes)):
+            if det_hit[di] >= 0:
+                fid = self.tracks[det_hit[di]]["id"]
+            else:
+                fid = self.next_id
+                self.next_id += 1
+                self.tracks.append({
+                    "id": fid, "box": boxes[di],
+                    "pivot": [pivots[di][0], pivots[di][1]],
+                    "vx": 0.0, "vy": 0.0, "cls": clses[di],
+                    "conf": confs[di], "hits": 1, "missed": 0,
+                    "last": float(t)})
+            for ii, fi in enumerate(filt_of_input):
+                if fi == di:
+                    self.last_ids[ii] = fid
+                    break
+
+        self.tracks = [tr for tr in self.tracks
+                       if tr["missed"] <= self._allowed(tr)]
+        if not any(tr["id"] == self.locked for tr in self.tracks):
+            self.locked = None
+        if not keep_lock or self.locked is None:
+            best, best_s = -1, float("inf")
+            cx, cy = self.frame_w * 0.5, self.frame_h * 0.5
+            for ti, tr in enumerate(self.tracks):
+                if tr["missed"] > self._allowed(tr):
+                    continue
+                s = (math.hypot(tr["pivot"][0] - cx, tr["pivot"][1] - cy)
+                     + tr["missed"] * 50.0 - min(5, tr["hits"]) * 4.0)
+                if s < best_s:
+                    best, best_s = ti, s
+            self.locked = self.tracks[best]["id"] if best >= 0 else None
+
+    def get_locked(self):
+        """Returns (xMid, yMid, h, tid, observed, missed, vx, vy) or None."""
+        for tr in self.tracks:
+            if tr["id"] == self.locked:
+                if tr["missed"] > self._allowed(tr):
+                    return None
+                cx = tr["box"][0] + tr["box"][2] * 0.5
+                cy = tr["box"][1] + tr["box"][3] * 0.5
+                return (cx, cy, tr["box"][3], tr["id"],
+                        tr["missed"] == 0, tr["missed"], tr["vx"], tr["vy"])
+        return None

@@ -8,9 +8,9 @@ import win32api
 import win32con
 
 import gameSelection
-from aim import (Kalman2D, apply_ignore_rects, fov_to_counts, headshot_offset,
-                 reject_own, select_locked, select_target, smooth_move,
-                 speed_curve)
+from aim import (Kalman2D, MiniTrack, apply_ignore_rects, fov_to_counts,
+                 headshot_offset, reject_own, select_locked, select_target,
+                 smooth_move, speed_curve)
 from inference_v8 import V8Detector
 from mouse import close_makcu, move_relative
 
@@ -145,7 +145,10 @@ def main(source=None, max_ticks=0):
     makcu_bezier = tuple(int(v) for v in _bez) if _bez else None
     mono_target = bool(_cfg("aaMonoTarget", True))
     use_tracker = bool(_cfg("v8Track", True))
-    tracker_yaml = _cfg("v8Tracker", "trackers/bytetrack-aim.yaml")
+    tracker_yaml = _cfg("v8Tracker", "minitrack")
+    use_minitrack = (str(tracker_yaml).strip().lower() == "minitrack")
+    mini_missed = int(_cfg("aaMiniMissed", 6))
+    mt = MiniTrack(class_player=0, max_missed=mini_missed)
     track_min_conf = float(_cfg("aaTrackMinConf", 0.3))
     track_buffer = int(_cfg("aaTrackBuffer", 10))
     recover_px = float(_cfg("aaRecoverPx", 60))
@@ -202,14 +205,15 @@ def main(source=None, max_ticks=0):
 
     detector = V8Detector(model=model, imgsz=imgsz, conf=conf, iou=iou,
                          device=device,
-                         tracker=tracker_yaml if use_tracker else None)
+                         tracker=(None if use_minitrack else tracker_yaml)
+                         if use_tracker else None)
 
     # ORT/TRT sessions build lazily on first predict (multi-second freeze).
     # Warm up now so the first CAPS press aims immediately.
     print(f"Warming up {model} ...", flush=True)
     try:
         _warm = np.zeros((160, 160, 3), dtype=np.uint8)
-        if use_tracker:
+        if use_tracker and not use_minitrack:
             detector.track(_warm)
         else:
             detector.infer(_warm)
@@ -305,6 +309,7 @@ def main(source=None, max_ticks=0):
                 mono_armed = True
                 locked_id = None
                 lock_misses = 0
+                mt.reset()
                 kf = None
                 kf_id = None
                 kf_warm = 0
@@ -370,24 +375,49 @@ def main(source=None, max_ticks=0):
             # just a calm spin so the feed stays live without burning CPU.
             time.sleep(0.02)
         elif tracker_ok:
-            try:
-                tr = detector.track(frame)
-            except Exception as e:
-                print(f"tracker failed, falling back to detect-only: {e}")
-                tracker_ok = False
-                tr = None
-            if tracker_ok and tr is not None:
-                if own_reject and len(tr):
+            if use_minitrack:
+                # SunOne-style association (velocity-predicted, locked
+                # privileges); no ultralytics tracker involved.
+                dets = detector.infer(frame)
+                if own_reject and len(dets):
                     fw, fh = frame.shape[1], frame.shape[0]
-                    tr = tr[reject_own(tr[:, :6], fw, fh, own_edge,
-                                       own_corner, own_sides)]
-                dets = tr[:, :6]
-                ids = [int(v) for v in tr[:, 6].tolist()]
-                t4, new_lock = select_locked(
-                    dets, ids, locked_id, cWidth, cHeight,
-                    center=centerOfScreen, last=last_mid,
-                    sticky_px=sticky_px, fov=fov, max_box_h=max_box_h,
-                    min_conf=track_min_conf, recover_px=recover_px)
+                    dets = dets[reject_own(dets, fw, fh, own_edge,
+                                           own_corner, own_sides)]
+                mt_t = t_cap if t_cap is not None else time.perf_counter()
+                mt.update(dets, t=mt_t, keep_lock=True,
+                          frame_w=float(frame.shape[1]),
+                          frame_h=float(frame.shape[0]))
+                lk = mt.get_locked()
+                if lk is None:
+                    t4, new_lock = None, None
+                else:
+                    t4 = (lk[0], lk[1], lk[2], lk[3])
+                    new_lock = lk[3]
+                have_track = True
+            else:
+                try:
+                    tr = detector.track(frame)
+                except Exception as e:
+                    print(f"tracker failed, falling back to detect-only: {e}")
+                    tracker_ok = False
+                    tr = None
+                if tracker_ok and tr is not None:
+                    if own_reject and len(tr):
+                        fw, fh = frame.shape[1], frame.shape[0]
+                        tr = tr[reject_own(tr[:, :6], fw, fh, own_edge,
+                                           own_corner, own_sides)]
+                    dets = tr[:, :6]
+                    ids = [int(v) for v in tr[:, 6].tolist()]
+                    t4, new_lock = select_locked(
+                        dets, ids, locked_id, cWidth, cHeight,
+                        center=centerOfScreen, last=last_mid,
+                        sticky_px=sticky_px, fov=fov, max_box_h=max_box_h,
+                        min_conf=track_min_conf, recover_px=recover_px)
+                    have_track = True
+                else:
+                    t4, new_lock = None, None
+                    have_track = False
+            if have_track:
                 if t4 is None:
                     lock_misses += 1
                     if lock_misses > track_buffer:

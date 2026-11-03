@@ -79,15 +79,29 @@ def replay(folder, tracker, model, imgsz=320, conf=0.25):
     raws = sorted(Path(folder).glob("frame_raw_*.png"))
     if not raws:
         raise SystemExit(f"no frame_raw_*.png in {folder} (record with diag_capture.py)")
-    det = V8Detector(model=model, imgsz=imgsz, conf=conf, device=0, tracker=tracker)
     out = []
-    for p in raws:
-        fr = imread_unicode(p)
-        tr = det.track(fr)
-        out.append({"t": 0.0,
-                    "dets": tr[:, :6].tolist(),
-                    "ids": [int(v) for v in tr[:, 6].tolist()]})
-    tag = Path(tracker).stem
+    if Path(tracker).stem == "minitrack":
+        from aim import MiniTrack
+        det = V8Detector(model=model, imgsz=imgsz, conf=conf, device=0,
+                         tracker=None)
+        mt = MiniTrack()
+        for i, p in enumerate(raws):
+            fr = imread_unicode(p)
+            d = det.infer(fr)
+            mt.update(d, t=i / 30.0, keep_lock=True,
+                      frame_w=float(fr.shape[1]), frame_h=float(fr.shape[0]))
+            out.append({"t": 0.0, "dets": d.tolist(), "ids": list(mt.last_ids)})
+        tag = "minitrack"
+    else:
+        det = V8Detector(model=model, imgsz=imgsz, conf=conf, device=0,
+                         tracker=tracker)
+        for p in raws:
+            fr = imread_unicode(p)
+            tr = det.track(fr)
+            out.append({"t": 0.0,
+                        "dets": tr[:, :6].tolist(),
+                        "ids": [int(v) for v in tr[:, 6].tolist()]})
+        tag = Path(tracker).stem
     rep = Path(folder) / f"replay-{tag}.jsonl"
     rep.write_text("\n".join(json.dumps(r) for r in out) + "\n", encoding="utf-8")
     return out, str(rep)
