@@ -1,3 +1,5 @@
+import queue
+import threading
 import time
 
 import cv2
@@ -26,7 +28,57 @@ def pick_target(dets, cWidth, cHeight, centerOfScreen, last_mid, max_box_h=0):
                          last=last_mid, max_box_h=max_box_h)
 
 
-def main():
+def _capture_loop(camera, frame_q, stop_ev):
+    """Pump latest frames; drop stale so inference always sees fresh pixels."""
+    while not stop_ev.is_set():
+        try:
+            frame = camera.get_latest_frame()
+        except Exception:
+            continue
+        if frame is None or stop_ev.is_set():
+            continue
+        try:
+            frame_q.get_nowait()
+        except queue.Empty:
+            pass
+        try:
+            frame_q.put_nowait(frame)
+        except queue.Full:
+            pass
+
+
+def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key, stats, stats_lock):
+    """Send latest queued move; drop stale so the cursor never lags frames."""
+    while not stop_ev.is_set():
+        try:
+            dx, dy = mouse_q.get(timeout=0.05)
+        except queue.Empty:
+            continue
+        if stop_ev.is_set():
+            break
+        try:
+            if win32api.GetKeyState(hold_key):
+                move_relative(dx, dy, backend=backend, port=port, baud=baud)
+                with stats_lock:
+                    stats["mouse"] += 1
+        except Exception:
+            pass
+
+
+def _queue_latest(q, item):
+    try:
+        q.get_nowait()
+    except queue.Empty:
+        pass
+    try:
+        q.put_nowait(item)
+    except queue.Full:
+        pass
+
+
+def main(source=None, max_ticks=0):
+    """Run the aimbot. source=(camera, cWidth, cHeight) injects a fake camera
+    (headless tests); max_ticks>0 stops after N inference ticks (test hook)."""
     import sys
     title_filter = None
     args = sys.argv[1:]
@@ -38,13 +90,16 @@ def main():
     crop_right = int(_cfg("aaCropRight", 0))
     crop_top = int(_cfg("aaCropTop", 0))
     crop_bottom = int(_cfg("aaCropBottom", 0))
-    selection = gameSelection.gameSelection(
-        title_filter, shift_x, shift_y,
-        crop_left, crop_right, crop_top, crop_bottom)
-    if selection is None:
-        print("Game selection failed, exiting.")
-        return
-    camera, cWidth, cHeight = selection
+    if source is None:
+        selection = gameSelection.gameSelection(
+            title_filter, shift_x, shift_y,
+            crop_left, crop_right, crop_top, crop_bottom)
+        if selection is None:
+            print("Game selection failed, exiting.")
+            return
+        camera, cWidth, cHeight = selection
+    else:
+        camera, cWidth, cHeight = source
 
     useMask = _cfg("useMask", False)
     maskSide = str(_cfg("maskSide", "left")).lower()
@@ -118,11 +173,33 @@ def main():
     prev_holding = False
     mono_armed = True
     count = 0
+    ticks = 0
     infer_ms = 0.0
     sTime = time.time()
+    stats = {"mouse": 0}
+    stats_lock = threading.Lock()
+    frame_q = queue.Queue()
+    mouse_q = queue.Queue()
+    stop_ev = threading.Event()
+    cap_t = threading.Thread(target=_capture_loop, args=(camera, frame_q, stop_ev),
+                             daemon=True)
+    mouse_t = threading.Thread(target=_mouse_loop,
+                               args=(mouse_q, stop_ev, mouse_backend,
+                                     makcu_port, makcu_baud, hold_key,
+                                     stats, stats_lock),
+                               daemon=True)
+    cap_t.start()
+    mouse_t.start()
 
-    while win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0:
-        frame = np.array(camera.get_latest_frame())
+    while (not stop_ev.is_set()
+           and win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0
+           and (max_ticks <= 0 or ticks < max_ticks)):
+        try:
+            frame = frame_q.get(timeout=0.5)
+        except queue.Empty:
+            continue
+        ticks += 1
+        frame = np.array(frame)
         if frame.shape[2] == 4:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
@@ -263,8 +340,7 @@ def main():
                 dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
                                      deadzone=deadzone, jitter=jitter if holding else 0)
                 if holding:
-                    move_relative(dx, dy, backend=mouse_backend,
-                                  port=makcu_port, baud=makcu_baud)
+                    _queue_latest(mouse_q, (dx, dy))
             last_mid = (xMid, yMid)
         else:
             if kf is not None and kf_coast < coast_max:
@@ -293,11 +369,20 @@ def main():
         count += 1
         if (time.time() - sTime) > 1:
             if cpsDisplay:
-                print(f"CPS: {count} infer: {infer_ms:.1f}ms")
+                with stats_lock:
+                    m = stats["mouse"]
+                    stats["mouse"] = 0
+                print(f"CPS inf: {count} mouse: {m} infer: {infer_ms:.1f}ms")
             count = 0
             sTime = time.time()
 
-    camera.stop()
+    stop_ev.set()
+    cap_t.join(timeout=3)
+    mouse_t.join(timeout=3)
+    try:
+        camera.stop()
+    except Exception:
+        pass
     try:
         close_makcu()
     except Exception:

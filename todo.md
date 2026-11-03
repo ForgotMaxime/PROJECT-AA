@@ -15,7 +15,7 @@
 - [x] Testé live Fortnite : ~30 CPS, infer ~25ms (RTX 3060)
 
 ## À faire
-- [ ] Threading capture / inférence / souris (files drop-stale) — CPS = 1/max au lieu de 1/somme
+- [x] Threading capture / inférence / souris (files drop-stale) — smoke test `tools/smoke_threads.py` vert
 - [ ] ORT CUDA : `onnxruntime-gpu[cuda,cudnn]` + `preload_dlls`, vérifier `get_providers`
 - [ ] Build engine TensorRT FP16 320 (wheel cp314 ? sinon venv 3.11/3.12 pour builder)
 - [ ] Mesure specialistion : ID switches/min en crossing, RMSE strafe vs saut (frames enregistrées)
