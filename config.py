@@ -78,6 +78,10 @@ aaCoastMax = 5
 # ticks before switching (needs aaPredict; 0 = switch instantly).
 aaLockHold = 8
 
+# Single-target mode: lock ONE target per CAPS press, never steal another.
+# Release + press CAPS to re-acquire. False = classic multi-target evaluation.
+aaMonoTarget = True
+
 # Target lock: keep last target within this radius, FOV box half-extents (0 = off)
 aaStickyPx = 80
 aaFovX = 0

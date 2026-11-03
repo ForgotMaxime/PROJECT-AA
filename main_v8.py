@@ -57,10 +57,10 @@ def main():
     visuals = bool(_cfg("visuals", False))
     centerOfScreen = bool(_cfg("centerOfScreen", True))
 
-    model = _cfg("v8Model", "yolov8s.pt")
+    model = _cfg("v8Model", "yolo11s.pt")
     imgsz = int(_cfg("v8Imgsz", 320))
-    conf = float(_cfg("v8Conf", _cfg("confidence", 0.4)))
-    iou = float(_cfg("v8Iou", 0.45))
+    conf = float(_cfg("v8Conf", _cfg("confidence", 0.25)))
+    iou = float(_cfg("v8Iou", 0.5))
     device = _cfg("v8Device", 0)
     if isinstance(device, str) and device.lower() == "auto":
         try:
@@ -71,13 +71,14 @@ def main():
     mouse_backend = _cfg("aaMouseBackend", "sendinput")
     makcu_port = _cfg("aaMakcuPort", "COM3")
     makcu_baud = int(_cfg("aaMakcuBaud", 115200))
+    mono_target = bool(_cfg("aaMonoTarget", True))
     use_tracker = bool(_cfg("v8Track", True))
     tracker_yaml = _cfg("v8Tracker", "trackers/bytetrack-aim.yaml")
     track_min_conf = float(_cfg("aaTrackMinConf", 0.3))
     track_buffer = int(_cfg("aaTrackBuffer", 10))
     hold_key = int(_cfg("aaHoldKey", 0x14))
-    smooth = float(_cfg("aaSmooth", 2.0))
-    max_step = int(_cfg("aaMaxStep", 40))
+    smooth = float(_cfg("aaSmooth", 1.3))
+    max_step = int(_cfg("aaMaxStep", 60))
     deadzone = int(_cfg("aaDeadzone", 1))
     jitter = float(_cfg("aaJitter", 0))
     sticky_px = int(_cfg("aaStickyPx", 80))
@@ -114,6 +115,8 @@ def main():
     kf_id = None
     kf_coast = 0
     last_t = None
+    prev_holding = False
+    mono_armed = True
     count = 0
     infer_ms = 0.0
     sTime = time.time()
@@ -138,8 +141,25 @@ def main():
         last_t = now
         coasted = False
 
+        holding = bool(win32api.GetKeyState(hold_key))
+        if mono_target:
+            if holding and not prev_holding:
+                # Fresh CAPS press: drop everything, acquire anew.
+                mono_armed = True
+                locked_id = None
+                lock_misses = 0
+                kf = None
+                kf_id = None
+            if not holding:
+                mono_armed = False
+        prev_holding = holding
+
         t0 = time.perf_counter()
-        if tracker_ok:
+        tgt = None
+        dets = np.zeros((0, 6), dtype=np.float32)
+        if mono_target and not mono_armed:
+            pass  # disarmed: fresh CAPS press to re-acquire, no inference spent
+        elif tracker_ok:
             try:
                 tr = detector.track(frame)
             except Exception as e:
@@ -161,7 +181,7 @@ def main():
                         lock_misses = 0
                         kf = None
                         kf_id = None
-                    tgt = None
+                        mono_armed = False
                 elif (locked_id is not None and new_lock != locked_id
                         and lock_misses < lock_hold and kf is not None):
                     # Locked target briefly unseen: hold the lock and coast-aim
@@ -171,22 +191,48 @@ def main():
                     coasted = True
                     ax, ay = kf.ahead(lead_t, lead_vmax)
                     tgt = (ax, ay, ema_h if ema_h is not None else t4[2])
+                elif (mono_target and locked_id is not None
+                        and new_lock != locked_id):
+                    # Mono: never steal another target, disarm instead.
+                    mono_armed = False
                 else:
                     lock_misses = 0
                     locked_id = new_lock
                     tgt = t4[:3]
             else:
                 dets = detector.infer(frame)
+                if mono_target and not mono_armed:
+                    pass
+                else:
+                    tgt = select_target(dets, cWidth, cHeight,
+                                        center=centerOfScreen, last=last_mid,
+                                        sticky_px=sticky_px, fov=fov,
+                                        max_box_h=max_box_h)
+        else:
+            dets = detector.infer(frame)
+            if mono_target and mono_armed:
+                # Mono without IDs: acquire once, then sticky-only, never jump.
+                if last_mid is None:
+                    tgt = select_target(dets, cWidth, cHeight,
+                                        center=centerOfScreen, last=None,
+                                        sticky_px=sticky_px, fov=fov,
+                                        max_box_h=max_box_h)
+                else:
+                    tgt = select_target(dets, cWidth, cHeight,
+                                        center=False, last=last_mid,
+                                        sticky_px=sticky_px, fov=fov,
+                                        max_box_h=max_box_h)
+                if tgt is None:
+                    lock_misses += 1
+                    if lock_misses > lock_hold:
+                        mono_armed = False
+                else:
+                    lock_misses = 0
+            else:
                 tgt = select_target(dets, cWidth, cHeight,
                                     center=centerOfScreen, last=last_mid,
                                     sticky_px=sticky_px, fov=fov,
                                     max_box_h=max_box_h)
-        else:
-            dets = detector.infer(frame)
-            tgt = select_target(dets, cWidth, cHeight,
-                                center=centerOfScreen, last=last_mid,
-                                sticky_px=sticky_px, fov=fov,
-                                max_box_h=max_box_h)
         infer_ms += ((time.perf_counter() - t0) * 1000.0 - infer_ms) * 0.1
 
         aim_dbg = None
@@ -220,7 +266,6 @@ def main():
                 engaged = False
             else:
                 engaged = True
-                holding = bool(win32api.GetKeyState(hold_key))
                 dx, dy = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
                                      deadzone=deadzone, jitter=jitter if holding else 0)
                 if holding:
@@ -244,6 +289,9 @@ def main():
             if aim_dbg is not None:
                 cv2.drawMarker(view, (int(aim_dbg[0]), int(aim_dbg[1])),
                                (0, 255, 255), cv2.MARKER_DIAMOND, 12, 2)
+            if mono_target:
+                cv2.putText(view, f"mono {'ARMED' if mono_armed else 'idle'} lock:{locked_id}",
+                            (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
             cv2.imshow("Live Feed v8", view)
             if (cv2.waitKey(1) & 0xFF) == ord("q"):
                 break
