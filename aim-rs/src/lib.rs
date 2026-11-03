@@ -147,6 +147,27 @@ pub fn select_locked(
         if !dets.is_empty() {
             if let Some((lx, ly)) = last {
                 if recover_px != 0.0 {
+                    // ID match first: only override on clear disagreement,
+                    // else the lock would flap between nearby targets.
+                    let mut best_id: Option<usize> = None;
+                    let mut best_c = -1.0f64;
+                    for (i, d) in dets.iter().enumerate() {
+                        let tid = ids.get(i).copied().and_then(norm);
+                        if tid == Some(lk) && d.conf >= min_conf && d.conf > best_c {
+                            best_id = Some(i);
+                            best_c = d.conf;
+                        }
+                    }
+                    if let Some(i) = best_id {
+                        let d = &dets[i];
+                        let dd = (d.mid_x() - lx).hypot(d.mid_y() - ly);
+                        if dd <= recover_px {
+                            return (
+                                Some((d.mid_x(), d.mid_y(), d.height(), Some(lk))),
+                                Some(lk),
+                            );
+                        }
+                    }
                     let mut di: Option<usize> = None;
                     let mut dd = recover_px;
                     for (i, d) in dets.iter().enumerate() {

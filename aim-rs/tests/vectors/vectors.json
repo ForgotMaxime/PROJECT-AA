@@ -1712,6 +1712,56 @@
  },
  {
   "kind": "locked",
+  "name": "recover-near-tie-keeps-id",
+  "input": {
+   "dets": [
+    [
+     140.0,
+     150.0,
+     160.0,
+     170.0,
+     0.9,
+     0.0
+    ],
+    [
+     160.0,
+     150.0,
+     180.0,
+     170.0,
+     0.9,
+     0.0
+    ]
+   ],
+   "ids": [
+    7,
+    3
+   ],
+   "locked": 7,
+   "cw": 160.0,
+   "ch": 160.0,
+   "center": true,
+   "last": [
+    168.0,
+    160.0
+   ],
+   "sticky_px": 80.0,
+   "fov": null,
+   "max_box_h": 0.0,
+   "min_conf": 0.3,
+   "recover_px": 60.0
+  },
+  "expected": {
+   "tgt": {
+    "x": 150.0,
+    "y": 160.0,
+    "h": 20.0,
+    "tid": 7
+   },
+   "lock": 7
+  }
+ },
+ {
+  "kind": "locked",
   "name": "recover-far-falls-back",
   "input": {
    "dets": [

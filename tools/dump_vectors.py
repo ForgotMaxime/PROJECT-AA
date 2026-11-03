@@ -183,6 +183,10 @@ def locked_cases():
         recover_px=60.0)
     add("recover-swap-heals", FRAME_A, [7, 3], 3, last=[140.0, 160.0],
         recover_px=60.0)
+    add("recover-near-tie-keeps-id",
+        [[140.0, 150.0, 160.0, 170.0, 0.9, 0.0],
+         [160.0, 150.0, 180.0, 170.0, 0.9, 0.0]],
+        [7, 3], 7, last=[168.0, 160.0], recover_px=60.0)
     add("recover-far-falls-back", FRAME_A, [7, 3], 99, last=[500.0, 500.0],
         recover_px=60.0)
     add("recover-lowconf-skips", FRAME_A, [7, 3], 99, last=[22.0, 32.0],

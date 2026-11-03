@@ -108,12 +108,29 @@ def select_locked(dets, ids, locked_id, cWidth, cHeight, center=True, last=None,
     if locked_id is not None and len(arr):
         if last is not None and recover_px:
             lx, ly = float(last[0]), float(last[1])
+
+            def _dist(i):
+                r = arr[i]
+                return math.hypot((float(r[0]) + float(r[2])) / 2 - lx,
+                                  (float(r[1]) + float(r[3])) / 2 - ly)
+
+            # ID match first: only override on clear disagreement, else the
+            # lock would flap between two nearby targets every tick.
+            best, best_c = -1, -1.0
+            for i, tid in enumerate(ids):
+                tid = _norm_tid(tid)
+                c = float(arr[i, 4])
+                if tid == locked_id and c >= min_conf and c > best_c:
+                    best, best_c = i, c
+            if best >= 0 and _dist(best) <= float(recover_px):
+                r = arr[best]
+                return ((float((r[0] + r[2]) / 2), float((r[1] + r[3]) / 2),
+                         float(r[3] - r[1]), locked_id), locked_id)
             di, dd = -1, float(recover_px)
             for i, r in enumerate(arr):
                 if float(r[4]) < min_conf:
                     continue
-                d = math.hypot((float(r[0]) + float(r[2])) / 2 - lx,
-                               (float(r[1]) + float(r[3])) / 2 - ly)
+                d = _dist(i)
                 if d < dd or (di < 0 and d <= dd):
                     di, dd = i, d
             if di >= 0:
@@ -121,6 +138,7 @@ def select_locked(dets, ids, locked_id, cWidth, cHeight, center=True, last=None,
                 tid = _norm_tid(ids[di]) if di < len(ids) else None
                 return ((float((r[0] + r[2]) / 2), float((r[1] + r[3]) / 2),
                          float(r[3] - r[1]), tid), tid)
+            # Nothing near: fall through to id-keep, then center fallback.
         best, best_c = -1, -1.0
         for i, tid in enumerate(ids):
             tid = _norm_tid(tid)
