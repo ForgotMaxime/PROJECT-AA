@@ -102,11 +102,6 @@ aaFovY = 0
 # Key held to aim (0x14 = CAPS_LOCK)
 aaHoldKey = 0x14
 
-# Extra hold binding: absolute TRACK lock. While held, the current lock is
-# never switched nor dropped (coasts on Kalman prediction through occlusions).
-# None = disabled. Set it from the GUI (Capture track key).
-aaTrackHoldKey = None
-
 # Pixel rects (x, y, w, h) blacked out before inference: own 3rd-person model, HUD.
 # Tune with tools/diag_capture.py frames (magenta outline). [] = off.
 # Currently off: Lunar edge/corner rule + max box height cover the gun tip.

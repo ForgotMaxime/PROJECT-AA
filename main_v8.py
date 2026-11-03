@@ -252,9 +252,6 @@ def main(source=None, max_ticks=0):
 
         hold_key = hold_key_live["vk"] = int(_cfg("aaHoldKey", 0x14))
         holding = bool(win32api.GetKeyState(hold_key))
-        _trk = _cfg("aaTrackHoldKey", None)
-        track_key = int(_trk) if _trk else 0
-        track_holding = bool(track_key and win32api.GetKeyState(track_key))
         if mono_target:
             if holding and not prev_holding:
                 # Fresh CAPS press: drop everything, acquire anew.
@@ -265,8 +262,6 @@ def main(source=None, max_ticks=0):
                 kf_id = None
             if not holding:
                 mono_armed = False
-            if track_holding:
-                mono_armed = True
         prev_holding = holding
 
         # Live-tunable subset: the GUI writes config attrs directly, the loop
@@ -320,37 +315,22 @@ def main(source=None, max_ticks=0):
                     min_conf=track_min_conf, recover_px=recover_px)
                 if t4 is None:
                     lock_misses += 1
-                    if lock_misses > track_buffer and not track_holding:
+                    if lock_misses > track_buffer:
                         # Total loss: drop the lock but stay armed while held,
                         # so a reappearance auto-acquires without re-press.
                         locked_id = None
                         lock_misses = 0
                         kf = None
                         kf_id = None
-                    elif (track_holding and kf is not None
-                            and locked_id is not None):
-                        # Absolute lock: coast-aim at the prediction through
-                        # total loss instead of going idle.
-                        kf.predict(dt)
-                        coasted = True
-                        ax, ay = kf.ahead(lead_t, lead_vmax)
-                        tgt = (ax, ay, ema_h if ema_h is not None else 0.0)
                 elif (locked_id is not None and new_lock != locked_id
-                        and (lock_misses < lock_hold or track_holding)
-                        and kf is not None):
+                        and lock_misses < lock_hold and kf is not None):
                     # Locked target briefly unseen: hold the lock and coast-aim
                     # at its prediction instead of flicking to another target.
-                    # Track-hold extends the coast indefinitely (absolute lock).
                     lock_misses += 1
                     kf.predict(dt)
                     coasted = True
                     ax, ay = kf.ahead(lead_t, lead_vmax)
                     tgt = (ax, ay, ema_h if ema_h is not None else t4[2])
-                elif track_holding and locked_id is not None and last_mid is not None:
-                    # Absolute lock without predictor: freeze on last known pos.
-                    lock_misses += 1
-                    tgt = (last_mid[0], last_mid[1],
-                           ema_h if ema_h is not None else t4[2])
                 else:
                     # Committed switch (hold expired) or first lock: one active
                     # target, never idle while anything is visible.
@@ -453,10 +433,7 @@ def main(source=None, max_ticks=0):
                 cv2.drawMarker(view, (int(aim_dbg[0]), int(aim_dbg[1])),
                                (0, 255, 255), cv2.MARKER_DIAMOND, 12, 2)
             if mono_target:
-                _mstate = f"mono {'ARMED' if mono_armed else 'idle'} lock:{locked_id}"
-                if track_holding:
-                    _mstate += " TRACK!"
-                cv2.putText(view, _mstate,
+                cv2.putText(view, f"mono {'ARMED' if mono_armed else 'idle'} lock:{locked_id}",
                             (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
             cv2.imshow("Live Feed v8", view)
             if (cv2.waitKey(1) & 0xFF) == ord("q"):

@@ -41,7 +41,6 @@ _quit = False
 _built = False
 _capturing = False
 _cap_deadline = 0.0
-_cap_attr = "aaHoldKey"
 
 _VK_NAMES = {
     0x01: "LMB", 0x02: "RMB", 0x04: "MMB", 0x05: "X1", 0x06: "X2",
@@ -77,15 +76,13 @@ def _on_quit(sender, value):
     _quit = True
 
 
-def start_key_capture(attr="aaHoldKey", timeout=10.0):
-    """Arm key capture: next key/mouse button down becomes config.<attr>."""
-    global _capturing, _cap_deadline, _cap_attr
+def start_key_capture(timeout=10.0):
+    """Arm hold-key capture: next key/mouse button down becomes aaHoldKey."""
+    global _capturing, _cap_deadline
     _capturing = True
-    _cap_attr = attr
     _cap_deadline = time.perf_counter() + float(timeout)
-    tag = "g_trackkey" if attr == "aaTrackHoldKey" else "g_holdkey"
-    if dpg.does_item_exist(tag):
-        dpg.set_value(tag, "press a key...")
+    if dpg.does_item_exist("g_holdkey"):
+        dpg.set_value("g_holdkey", "press a key...")
 
 
 def _poll_key_capture():
@@ -93,13 +90,10 @@ def _poll_key_capture():
     global _capturing
     if not _capturing:
         return False
-    attr = globals().get("_cap_attr", "aaHoldKey")
-    tag = "g_trackkey" if attr == "aaTrackHoldKey" else "g_holdkey"
     if time.perf_counter() > _cap_deadline:
         _capturing = False
-        if dpg.does_item_exist(tag):
-            _cur = getattr(config, attr, None)
-            dpg.set_value(tag, f"{_short(attr)}: {vk_name(_cur) if _cur else 'off'}")
+        if dpg.does_item_exist("g_holdkey"):
+            dpg.set_value("g_holdkey", f"hold: {vk_name(config.aaHoldKey)}")
         return False
     for vk in _VK_SCAN:
         try:
@@ -107,16 +101,12 @@ def _poll_key_capture():
         except Exception:
             continue
         if down:
-            setattr(config, attr, vk)
+            config.aaHoldKey = vk
             _capturing = False
-            if dpg.does_item_exist(tag):
-                dpg.set_value(tag, f"{_short(attr)}: {vk_name(vk)}")
+            if dpg.does_item_exist("g_holdkey"):
+                dpg.set_value("g_holdkey", f"hold: {vk_name(vk)}")
             return False
     return True
-
-
-def _short(attr):
-    return "track" if attr == "aaTrackHoldKey" else "hold"
 
 
 def build():
@@ -145,12 +135,7 @@ def build():
         dpg.add_text("", tag="g_stats")
         dpg.add_text(f"hold: {vk_name(config.aaHoldKey)}", tag="g_holdkey")
         dpg.add_button(label="Capture hold key", tag="g_capkey",
-                       callback=lambda s, v: start_key_capture("aaHoldKey"))
-        _trk0 = getattr(config, "aaTrackHoldKey", None)
-        dpg.add_text(f"track: {vk_name(_trk0) if _trk0 else 'off'}",
-                     tag="g_trackkey")
-        dpg.add_button(label="Capture track key", tag="g_captrack",
-                       callback=lambda s, v: start_key_capture("aaTrackHoldKey"))
+                       callback=lambda s, v: start_key_capture())
         dpg.add_button(label="Quit", tag="g_quit", callback=_on_quit)
 
 
