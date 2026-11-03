@@ -181,6 +181,7 @@ def main(source=None, max_ticks=0):
     game_sens = float(_cfg("aaSens", 1.0))
     game_yaw = float(_cfg("aaYaw", 0.022))
     game_pitch = float(_cfg("aaPitch", 0.022))
+    fov_speed = float(_cfg("aaFovSpeed", 0.25))
     screen_w = int(_cfg("aaScreenW", 0)) or int(win_w or 0)
     screen_h = int(_cfg("aaScreenH", 0)) or int(win_h or 0)
     if game_fov_x > 0 and game_fov_y > 0:
@@ -295,6 +296,7 @@ def main(source=None, max_ticks=0):
         game_sens = float(_cfg("aaSens", 1.0))
         game_yaw = float(_cfg("aaYaw", 0.022))
         game_pitch = float(_cfg("aaPitch", 0.022))
+        fov_speed = float(_cfg("aaFovSpeed", 0.25))
         smooth = float(_cfg("aaSmooth", 1.3))
         max_step = int(_cfg("aaMaxStep", 60))
         conf = float(_cfg("v8Conf", 0.25))
@@ -461,6 +463,13 @@ def main(source=None, max_ticks=0):
             # px -> counts, so the loop can't hunt in count units.
             raw_dx = (ax + shift_x - cWidth) * aaMovementAmp
             raw_dy = (ay + shift_y - offset - cHeight) * aaMovementAmp
+            fov_on = (game_fov_x > 0 and game_fov_y > 0
+                      and screen_w > 0 and screen_h > 0)
+            if fov_on:
+                # FOV path has its own loop gain (loop-delay stability),
+                # shaped in the same px units before output conversion.
+                raw_dx = (ax + shift_x - cWidth) * fov_speed
+                raw_dy = (ay + shift_y - offset - cHeight) * fov_speed
             mag = float(np.hypot(raw_dx, raw_dy))
             # Deadzone hysteresis: engage above enter, release below exit.
             if (engaged and mag < dz_exit) or (not engaged and mag < dz_enter):
@@ -469,7 +478,7 @@ def main(source=None, max_ticks=0):
                 engaged = True
                 mx, my = smooth_move(raw_dx, raw_dy, smooth=smooth, max_step=max_step,
                                      deadzone=deadzone, jitter=jitter if holding else 0)
-                if game_fov_x > 0 and game_fov_y > 0 and screen_w > 0 and screen_h > 0:
+                if fov_on:
                     fdx, fdy = fov_to_counts(
                         mx, my, screen_w, screen_h, game_fov_x, game_fov_y,
                         game_sens, game_yaw, game_pitch, 1.0)

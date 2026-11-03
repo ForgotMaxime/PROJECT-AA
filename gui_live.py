@@ -29,6 +29,7 @@ SLIDERS = [
     ("g_gamefovx", "game fov x", "aaGameFovX", 0.0, 120.0),
     ("g_gamefovy", "game fov y", "aaGameFovY", 0.0, 90.0),
     ("g_sens", "sens", "aaSens", 0.1, 10.0),
+    ("g_fovspeed", "fov speed", "aaFovSpeed", 0.05, 1.0),
 ]
 # Note: shift/crop stay static (capture region is built once at startup).
 

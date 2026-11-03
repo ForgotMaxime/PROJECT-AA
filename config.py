@@ -8,8 +8,14 @@ maskSide = "left"
 maskWidth = 80
 maskHeight = 200
 
-# Autoaim mouse movement amplifier (legacy scalar mode; also trims FOV mode)
+# Autoaim mouse movement amplifier (legacy scalar mode)
 aaMovementAmp = .7
+
+# FOV-mode loop gain per tick (separate trim: unity = 100%/tick, unstable
+# with ~2 ticks of loop delay; SunOne defaults to 0.1 speed for this reason).
+# 0.25 ~= 20%/tick, geometrically stable. Raise live toward 1.0 only while
+# no left-right/up-down hunting appears.
+aaFovSpeed = 0.25
 
 # Game FOV conversion (SunOne-style, fixed): pixels -> mouse counts via the
 # real game FOV + sensitivity instead of the blind aaMovementAmp scalar.
