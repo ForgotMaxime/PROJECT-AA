@@ -84,6 +84,7 @@ def main(source=None, max_ticks=0):
     args = sys.argv[1:]
     if "--window" in args:
         title_filter = args[args.index("--window") + 1]
+    gui_on = "--gui" in args
     shift_x = int(_cfg("aaShiftX", 0))
     shift_y = int(_cfg("aaShiftY", 0))
     crop_left = int(_cfg("aaCropLeft", 0))
@@ -177,6 +178,9 @@ def main(source=None, max_ticks=0):
     except Exception as e:
         print(f"Warmup failed (will retry live): {e}")
     print("Warmup done.", flush=True)
+    if gui_on:
+        import gui_live
+        gui_live.init()
 
     colors = np.random.uniform(0, 255, size=(2, 3))
     last_mid = None
@@ -195,6 +199,7 @@ def main(source=None, max_ticks=0):
     ticks = 0
     infer_ms = 0.0
     sTime = time.time()
+    stats_txt = ""
     stats = {"mouse": 0}
     stats_lock = threading.Lock()
     frame_q = queue.Queue()
@@ -212,7 +217,8 @@ def main(source=None, max_ticks=0):
 
     while (not stop_ev.is_set()
            and win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0
-           and (max_ticks <= 0 or ticks < max_ticks)):
+           and (max_ticks <= 0 or ticks < max_ticks)
+           and not (gui_on and gui_live.should_quit())):
         try:
             frame = frame_q.get(timeout=0.5)
         except queue.Empty:
@@ -249,6 +255,29 @@ def main(source=None, max_ticks=0):
             if not holding:
                 mono_armed = False
         prev_holding = holding
+
+        # Live-tunable subset: the GUI writes config attrs directly, the loop
+        # re-reads them every tick (single thread, no locks needed).
+        aaMovementAmp = float(_cfg("aaMovementAmp", 0.7))
+        smooth = float(_cfg("aaSmooth", 1.3))
+        max_step = int(_cfg("aaMaxStep", 60))
+        conf = float(_cfg("v8Conf", 0.25))
+        iou = float(_cfg("v8Iou", 0.5))
+        lead_t = float(_cfg("aaLeadT", 0.03))
+        max_box_h = float(_cfg("aaMaxBoxH", 160))
+        recover_px = float(_cfg("aaRecoverPx", 60))
+        sticky_px = int(_cfg("aaStickyPx", 80))
+        dz_enter = float(_cfg("aaDzEnter", 2.5))
+        jitter = float(_cfg("aaJitter", 0))
+        deadzone = int(_cfg("aaDeadzone", 1))
+        aa_predict = bool(_cfg("aaPredict", True))
+        mono_target = bool(_cfg("aaMonoTarget", True))
+        cpsDisplay = bool(_cfg("cpsDisplay", True))
+        visuals = bool(_cfg("visuals", True))
+        useMask = bool(_cfg("useMask", False))
+        detector.conf = conf
+        detector.iou = iou
+        lead_vmax = (lead_max / lead_t) if lead_t > 0 else 0.0
 
         t0 = time.perf_counter()
         tgt = None
@@ -409,12 +438,19 @@ def main(source=None, max_ticks=0):
                     m = stats["mouse"]
                     stats["mouse"] = 0
                 print(f"CPS inf: {count} mouse: {m} infer: {infer_ms:.1f}ms")
+                stats_txt = (f"inf {count} | mouse {m} | {infer_ms:.1f}ms | "
+                             f"lock {locked_id} | dets {len(dets)}")
             count = 0
             sTime = time.time()
+
+        if gui_on:
+            gui_live.frame(stats_txt)
 
     stop_ev.set()
     cap_t.join(timeout=3)
     mouse_t.join(timeout=3)
+    if gui_on:
+        gui_live.stop()
     try:
         camera.stop()
     except Exception:

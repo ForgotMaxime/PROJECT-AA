@@ -20,3 +20,4 @@ onnxslim
 onnxruntime-gpu[cuda,cudnn]
 tensorrt-cu12
 pyserial
+dearpygui

@@ -25,7 +25,7 @@
 - [x] Test live MAKCU (COM4 @4M, carré OK) — backend `makcu` actif par défaut
 
 ## Écart techno (état des lieux)
-- [ ] Overlay/GUI de tuning live (sliders, FOV box, toggles) — gap UX n°1 vs ImGui/DearPyGui
+- [x] Overlay/GUI de tuning live (`gui_live.py` DearPyGui + `--gui`, 16 réglages + stats)
 - [ ] Mouvements humanisés : Bézier/segments MAKCU, courbes type WindMouse
 - [ ] Modèle fine-tuné Fortnite (hologrammes, skins) — plafond de précision actuel = COCO
 - [ ] YOLOv12/pose (tester `yolo12s`, `yolo11s-pose` pour visée tête directe)

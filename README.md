@@ -43,10 +43,9 @@ Full original 12-step guide removed as outdated; expect adaptation for CUDA 12 /
 
 ```powershell
 cd "PROJECT AA"
-python main_v8.py        # YOLOv8, default (torch CUDA)
-python main.py          # Fast (legacy v5)
-python main_onnx.py     # Faster (legacy v5)
-python main_tensorrt.py # Fastest, NVIDIA (legacy v8 TRT not yet)
+python main_v8.py        # live (TensorRT engine + ByteTrack + Kalman)
+python main_v8.py --window Fortnite   # select by title, no index race
+python main_v8.py --window Fortnite --gui  # + live DearPyGui tuning panel
 ```
 
 - `CAPS_LOCK` toggles aim (starts OFF).

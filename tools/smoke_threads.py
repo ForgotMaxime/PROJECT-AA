@@ -61,8 +61,14 @@ def main():
         Path("diag/shot_crop_320.png").read_bytes(), np.uint8)
     crop_bgr = cv2.imdecode(data, cv2.IMREAD_COLOR)
     crop = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2BGRA)
+    # ADS crop with a strong person detection (engine-verified). The corridor
+    # crop above may yield nothing on the current default model.
+    shots = sorted(Path(r"C:\Users\humax\Desktop\FFA\Image").glob("*.png"))
+    full = cv2.imdecode(
+        np.frombuffer(shots[1].read_bytes(), np.uint8), cv2.IMREAD_COLOR)
+    ads = cv2.cvtColor(full[374:694, 60:320], cv2.COLOR_BGR2BGRA)
     blank = np.zeros_like(crop)
-    cam = FakeCam([crop, crop, blank, crop])
+    cam = FakeCam([ads, ads, blank, ads])
 
     before = set(t.name for t in threading.enumerate())
     t0 = time.perf_counter()
