@@ -108,8 +108,8 @@ aaHoldKey = 0x14
 aaIgnoreRects = []
 
 # Crop the capture box edges (px): trims HUD/edge junk instead of blacking out.
-aaCropLeft = 20
-aaCropRight = 40
+aaCropLeft = 0
+aaCropRight = 20
 aaCropTop = 0
 aaCropBottom = 0
 
@@ -128,5 +128,5 @@ aaOwnSides = ["left"]
 # AND the aim point by the same amount, so aim math stays exact while the
 # selection center moves away from your own shoulder model. 0 = off.
 # Positive X moves selection right (own char on the left).
-aaShiftX = 60
+aaShiftX = 40
 aaShiftY = 0

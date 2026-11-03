@@ -47,7 +47,7 @@ def _capture_loop(camera, frame_q, stop_ev):
             pass
 
 
-def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key, stats,
+def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key_live, stats,
                 stats_lock, segments=1, bezier=None):
     """Send latest queued move; drop stale so the cursor never lags frames."""
     while not stop_ev.is_set():
@@ -58,7 +58,7 @@ def _mouse_loop(mouse_q, stop_ev, backend, port, baud, hold_key, stats,
         if stop_ev.is_set():
             break
         try:
-            if win32api.GetKeyState(hold_key):
+            if win32api.GetKeyState(hold_key_live["vk"]):
                 move_relative(dx, dy, backend=backend, port=port, baud=baud,
                               segments=segments, bezier=bezier)
                 with stats_lock:
@@ -140,6 +140,7 @@ def main(source=None, max_ticks=0):
     track_buffer = int(_cfg("aaTrackBuffer", 10))
     recover_px = float(_cfg("aaRecoverPx", 60))
     hold_key = int(_cfg("aaHoldKey", 0x14))
+    hold_key_live = {"vk": hold_key}  # shared with mouse thread for GUI rebind
     smooth = float(_cfg("aaSmooth", 1.3))
     max_step = int(_cfg("aaMaxStep", 60))
     deadzone = int(_cfg("aaDeadzone", 1))
@@ -214,7 +215,7 @@ def main(source=None, max_ticks=0):
                              daemon=True, name="aa-capture")
     mouse_t = threading.Thread(target=_mouse_loop,
                                args=(mouse_q, stop_ev, mouse_backend,
-                                     makcu_port, makcu_baud, hold_key,
+                                     makcu_port, makcu_baud, hold_key_live,
                                      stats, stats_lock,
                                      makcu_segments, makcu_bezier),
                                daemon=True, name="aa-mouse")
@@ -249,6 +250,7 @@ def main(source=None, max_ticks=0):
         last_t = now
         coasted = False
 
+        hold_key = hold_key_live["vk"] = int(_cfg("aaHoldKey", 0x14))
         holding = bool(win32api.GetKeyState(hold_key))
         if mono_target:
             if holding and not prev_holding:
